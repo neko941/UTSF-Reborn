@@ -1,0 +1,6 @@
+data: .\data\traffic\vehicleworkgeopath_avg_speed-1.csv
+target: speed
+date: date
+time_id: time_id
+features: current_geopath_id
+delimiter: "|"
