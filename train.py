@@ -87,11 +87,11 @@ def main():
     workers = 8
     splitRatio = (0.7, 0.2, 0.1)
     seed = 941
-
-    patience = 200
+    cyclicalPattern = False
+    patience = 1_000
     optimizer = 'Adam'
     loss = 'MSE'
-    epochs = 500
+    epochs = 10_000_000
     learning_rate = 0.001
     batchsz = 64
 
@@ -105,7 +105,7 @@ def main():
                                 lag=lag, 
                                 ahead=ahead, 
                                 offset=offset,
-                                savePath=save_dir).execute()
+                                savePath=save_dir).execute(cyclicalPattern=cyclicalPattern)
     X_train, y_train, X_val, y_val, X_test, y_test = dataset.GetData(shuffle=False)
 
     model_dict = [{ 
@@ -130,40 +130,6 @@ def main():
               optimizer=optimizer, 
               loss=loss,
               batchsz=batchsz)
-        # model = item['model'](input_shape=X_train.shape[-2:], 
-        #                       output_shape=ahead, 
-        #                       seed=seed,
-        #                       normalize_layer=None,
-        #                       modelConfigs=item.get('config'))
-        # model.build()
-        # model.fit(patience=patience, 
-        #           save_dir=save_dir, 
-        #           optimizer=optimizer, 
-        #           loss=loss, 
-        #           epochs=epochs, 
-        #           learning_rate=learning_rate, 
-        #           batchsz=batchsz,
-        #           X_train=X_train, y_train=y_train,
-        #           X_val=X_val, y_val=y_val)
-        # model.save(save_dir=save_dir, file_name=model.__class__.__name__)
-        # yhat = model.predict(X=X_test)
-        # scores = model.score(y=y_test, 
-        #                      yhat=yhat, 
-        #                      r=4,
-        #                      path=save_dir)
-        # print(scores)
-        # if ahead == 1:
-        #     visualize_path = os.path.join(save_dir, 'plots')
-        #     os.makedirs(name=visualize_path, exist_ok=True)
-        #     save_plot(filename=os.path.join(visualize_path, f'{model.__class__.__name__}.png'),
-        #                 data=[{'data': [range(len(y_test)), y_test],
-        #                         'color': 'green',
-        #                         'label': 'y'},
-        #                         {'data': [range(len(yhat)), yhat],
-        #                         'color': 'red',
-        #                         'label': 'yhat'}],
-        #                 xlabel='Sample',
-        #                 ylabel='Value')
 
 def run(**kwargs):
     """ 

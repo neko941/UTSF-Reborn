@@ -1,19 +1,21 @@
 import os
+import time
 import numpy as np
 import polars as pl
-from rich.progress import track
 from datetime import timedelta
+from dateutil.parser import parse
 from multiprocessing.pool import ThreadPool
 
 from utils.general import yaml_load
 from utils.general import list_convert
 from utils.general import flatten_list
 
+from rich.progress import track
 from rich.progress import Progress
 from rich.progress import BarColumn 
-from rich.progress import MofNCompleteColumn
 from rich.progress import TextColumn
 from rich.progress import TimeElapsedColumn
+from rich.progress import MofNCompleteColumn
 from rich.progress import TimeRemainingColumn
 
 class DatasetController():
@@ -55,13 +57,14 @@ class DatasetController():
 
         self.num_samples = []
 
-    def execute(self):
+    def execute(self, cyclicalPattern=False):
         assert self.dataPaths is not None
         self.GetDataPaths(self.dataPaths)
         self.ReadFileAddFetures(csvs=self.dataFilePaths, dirAsFeature=self.dirAsFeature, hasHeader=True)
         self.TimeIDToDateTime(timeIDColumn=self.timeID, granularity=self.granularity, startTimeId=self.startTimeId)
-        self.GetUsedColumn()
         self.GetSegmentFeature(dirAsFeature=self.dirAsFeature, splitDirFeature=self.splitDirFeature, splitFeature=self.splitFeature)
+        if cyclicalPattern: self.CyclicalPattern()
+        self.GetUsedColumn()
         self.SplittingData(splitRatio=self.splitRatio, lag=self.lag, ahead=self.ahead, offset=self.offset, multimodels=False)      
         self.SaveData(save_dir=self.savePath)
         return self
@@ -92,14 +95,14 @@ class DatasetController():
 
     def ProgressBar(self):
         return Progress("[bright_cyan][progress.description]{task.description}",
-                          BarColumn(),
-                          TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
-                          TextColumn("•Items"),
-                          MofNCompleteColumn(), # "{task.completed}/{task.total}",
-                          TextColumn("•Remaining"),
-                          TimeRemainingColumn(),
-                          TextColumn("•Total"),
-                          TimeElapsedColumn())
+                        BarColumn(),
+                        TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+                        TextColumn("•Items"),
+                        MofNCompleteColumn(), # "{task.completed}/{task.total}",
+                        TextColumn("•Remaining"),
+                        TimeRemainingColumn(),
+                        TextColumn("•Total"),
+                        TimeElapsedColumn())
 
     def ReadFileAddFetures(self, csvs=None, dirAsFeature=0, newColumnName='dir', hasHeader=True):
         if csvs: self.dataFilePaths = [os.path.abspath(csv) for csv in csvs]  
@@ -124,6 +127,8 @@ class DatasetController():
     
         if self.df is None: self.df = df
         else: self.df = pl.concat([self.df, df])
+
+        # if self.dateFeature: self.df = self.df.with_columns(pl.col(self.dateFeature).cast(pl.Datetime))
 
     def TimeIDToDateTime(self, timeIDColumn=None, granularity=1, startTimeId=0):
         if timeIDColumn: self.timeID = timeIDColumn
@@ -151,18 +156,55 @@ class DatasetController():
         self.segmentFeature = self.dirFeatures[self.splitDirFeature] if self.dirAsFeature != 0 and self.splitDirFeature != -1 else self.splitFeature if self.splitFeature else None
         # TODO: consider if data in segmentFeature are number or not. 
 
-    def CyclicalPattern(self): pass
+    def TimeEncoder(self, df):
+        day = 24 * 60 * 60 # Seconds in day  
+        year = (365.2425) * day # Seconds in year
 
-    def FillDate(self, df=None, low=None, high=None): 
+        df = self.FillDate(df=df)
+        unix = df[self.dateFeature].to_frame().with_columns(pl.col(self.dateFeature).cast(pl.Utf8).alias('unix_str'))
+        unix_time = [time.mktime(parse(t).timetuple()) for t in unix['unix_str'].to_list()]
+        df = df.with_columns(pl.lit(unix_time).alias('unix_time'))
+
+        if len(set(df[self.dateFeature].dt.day().to_list())) > 1:
+            df = df.with_columns(np.cos((pl.col('unix_time')) * (2 * np.pi / day)).alias('day_cos'))
+            df = df.with_columns(np.sin((pl.col('unix_time')) * (2 * np.pi / day)).alias('day_sin'))
+            self.trainFeatures.extend(['day_cos', 'day_sin'])
+        if len(set(df[self.dateFeature].dt.month().to_list())) > 1:
+            df = df.with_columns(np.cos((pl.col('unix_time')) * (2 * np.pi / year)).alias('month_cos'))
+            df = df.with_columns(np.sin((pl.col('unix_time')) * (2 * np.pi / year)).alias('month_sin'))
+            self.trainFeatures.extend(['month_cos', 'month_sin'])
+        
+        return df
+
+    def CyclicalPattern(self):
+        assert self.dateFeature is not None
+        if self.segmentFeature:
+            if self.dateFeature: self.df = self.df.sort(by=[self.segmentFeature, self.dateFeature])
+            else: self.df = self.df.sort(by=[self.segmentFeature])
+        
+        if self.segmentFeature:
+            dfs = None
+            for ele in self.df[self.segmentFeature].unique():
+                df = self.df.filter(pl.col(self.segmentFeature) == ele).clone()
+                df = self.TimeEncoder(df=df)
+                if dfs is None: dfs = df
+                else: dfs = pl.concat([dfs, df])
+            self.df = dfs.drop_nulls()
+            self.trainFeatures = list(set(self.trainFeatures))
+        else: 
+            self.df = self.TimeEncoder(df=self.df).drop_nulls()
+
+    def FillDate(self, df=None, low=None, high=None, granularity=None): 
         # TODO: cut date
         if not self.dateFeature: return
         # if df.is_empty(): df=self.df
         if not low: low=self.df[self.dateFeature].min()
         if not high: high=self.df[self.dateFeature].max()
+        if not granularity: granularity=self.granularity
 
         d = pl.date_range(low=low,
                           high=high,
-                          interval=timedelta(minutes=self.granularity),
+                          interval=timedelta(minutes=granularity),
                           closed='both',
                           name=self.dateFeature).to_frame()
         df = df.join(other=d, 
@@ -178,9 +220,6 @@ class DatasetController():
             feature = d[idx:idx+lag]
             label = d[self.targetFeatures][idx+lag+offset-ahead:idx+lag+offset].to_frame()
             if all(flatten_list(feature.with_columns(pl.all().is_not_null()).rows())) and all(flatten_list(label.with_columns(pl.all().is_not_null()).rows())): 
-                # print(feature)
-                # print(d[idx+lag+offset-ahead:idx+lag+offset])
-                # print('======================================================================================================')
                 labels.append(np.squeeze(label.to_numpy()))
                 features.append(feature.to_numpy()) 
 
@@ -260,6 +299,7 @@ class DatasetController():
         self.y_test = np.array(self.y_test)
     
     def SaveData(self, save_dir):
+        self.df.write_csv(os.path.join(save_dir, 'data_processed.csv'))
         save_dir = os.path.join(save_dir, 'values')
         os.makedirs(save_dir, exist_ok=True)
         np.save(open(os.path.join(save_dir, 'X_train.npy'), 'wb'), self.X_train)
