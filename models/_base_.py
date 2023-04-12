@@ -128,7 +128,7 @@ class TensorflowModel(BaseModel):
                                       callbacks=self.callbacks(patience=patience, save_dir=save_dir, min_delta=0.001))
 
     def predict(self, X):
-        return self.model.predict(X)
+        return self.model.predict(X, verbose=0)
     
     def save(self, file_name:str, save_dir:str='.', extension:str='.h5'):
         os.makedirs(name=os.path.join(save_dir, 'weights'), exist_ok=True)

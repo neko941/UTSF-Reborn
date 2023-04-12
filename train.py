@@ -21,6 +21,50 @@ name = 'exp'
 overwrite = False
 save_dir = str(increment_path(Path(project) / name, overwrite=overwrite, mkdir=True))
 
+def train(model, modelConfigs, data, save_dir, ahead,
+          seed=941, 
+          normalize_layer=None,
+          learning_rate=1e-3,
+          epochs=10_000_000, 
+          patience=1_000,
+          optimizer='Adam', 
+          loss='MSE',
+          batchsz=64):
+    model = model(input_shape=data[0][0].shape[-2:],
+                  modelConfigs=modelConfigs, 
+                  output_shape=ahead, 
+                  seed=seed,
+                  normalize_layer=None)
+    model.build()
+    model.fit(patience=patience, 
+              save_dir=save_dir, 
+              optimizer=optimizer, 
+              loss=loss, 
+              epochs=epochs, 
+              learning_rate=learning_rate, 
+              batchsz=batchsz,
+              X_train=data[0][0], y_train=data[0][1],
+              X_val=data[1][0], y_val=data[1][1])
+    model.save(save_dir=save_dir, file_name=model.__class__.__name__)
+    yhat = model.predict(X=data[2][0])
+    scores = model.score(y=data[2][1], 
+                         yhat=yhat, 
+                         r=4,
+                         path=save_dir)
+    print(scores)
+    if ahead == 1:
+        visualize_path = os.path.join(save_dir, 'plots')
+        os.makedirs(name=visualize_path, exist_ok=True)
+        save_plot(filename=os.path.join(visualize_path, f'{model.__class__.__name__}.png'),
+                    data=[{'data': [range(len(data[2][1])), data[2][1]],
+                            'color': 'green',
+                            'label': 'y'},
+                            {'data': [range(len(yhat)), yhat],
+                            'color': 'red',
+                            'label': 'yhat'}],
+                    xlabel='Sample',
+                    ylabel='Value')
+
 def main():
     path = r'.\configs\datasets\salinity-4_ids-split_column.yaml'
     granularity = 1440
@@ -73,40 +117,67 @@ def main():
 
     for item in model_dict:
         # if not vars(opt)[f'{item["model"].__name__}']: continue
-        model = item['model'](input_shape=X_train.shape[-2:], 
-                              output_shape=ahead, 
-                              seed=seed,
-                              normalize_layer=None,
-                              modelConfigs=item.get('config'))
-        model.build()
-        model.fit(patience=patience, 
-                  save_dir=save_dir, 
-                  optimizer=optimizer, 
-                  loss=loss, 
-                  epochs=epochs, 
-                  learning_rate=learning_rate, 
-                  batchsz=batchsz,
-                  X_train=X_train, y_train=y_train,
-                  X_val=X_val, y_val=y_val)
-        model.save(save_dir=save_dir, file_name=model.__class__.__name__)
-        yhat = model.predict(X=X_test)
-        scores = model.score(y=y_test, 
-                             yhat=yhat, 
-                             r=4,
-                             path=save_dir)
-        print(scores)
-        if ahead == 1:
-            visualize_path = os.path.join(save_dir, 'plots')
-            os.makedirs(name=visualize_path, exist_ok=True)
-            save_plot(filename=os.path.join(visualize_path, f'{model.__class__.__name__}.png'),
-                        data=[{'data': [range(len(y_test)), y_test],
-                                'color': 'green',
-                                'label': 'y'},
-                                {'data': [range(len(yhat)), yhat],
-                                'color': 'red',
-                                'label': 'yhat'}],
-                        xlabel='Sample',
-                        ylabel='Value')
+        train(model=item['model'], 
+              modelConfigs=item['config'], 
+              data=[[X_train, y_train], [X_val, y_val], [X_test, y_test]], 
+              save_dir=save_dir,
+              ahead=ahead, 
+              seed=seed, 
+              normalize_layer=None,
+              learning_rate=learning_rate,
+              epochs=epochs, 
+              patience=patience,
+              optimizer=optimizer, 
+              loss=loss,
+              batchsz=batchsz)
+        # model = item['model'](input_shape=X_train.shape[-2:], 
+        #                       output_shape=ahead, 
+        #                       seed=seed,
+        #                       normalize_layer=None,
+        #                       modelConfigs=item.get('config'))
+        # model.build()
+        # model.fit(patience=patience, 
+        #           save_dir=save_dir, 
+        #           optimizer=optimizer, 
+        #           loss=loss, 
+        #           epochs=epochs, 
+        #           learning_rate=learning_rate, 
+        #           batchsz=batchsz,
+        #           X_train=X_train, y_train=y_train,
+        #           X_val=X_val, y_val=y_val)
+        # model.save(save_dir=save_dir, file_name=model.__class__.__name__)
+        # yhat = model.predict(X=X_test)
+        # scores = model.score(y=y_test, 
+        #                      yhat=yhat, 
+        #                      r=4,
+        #                      path=save_dir)
+        # print(scores)
+        # if ahead == 1:
+        #     visualize_path = os.path.join(save_dir, 'plots')
+        #     os.makedirs(name=visualize_path, exist_ok=True)
+        #     save_plot(filename=os.path.join(visualize_path, f'{model.__class__.__name__}.png'),
+        #                 data=[{'data': [range(len(y_test)), y_test],
+        #                         'color': 'green',
+        #                         'label': 'y'},
+        #                         {'data': [range(len(yhat)), yhat],
+        #                         'color': 'red',
+        #                         'label': 'yhat'}],
+        #                 xlabel='Sample',
+        #                 ylabel='Value')
+
+def run(**kwargs):
+    """ 
+    Usage (example)
+        import main
+        main.run(all=True, 
+                 source=data.yaml,
+                 Normalization=True)
+    """
+    opt = parse_opt(True)
+    for k, v in kwargs.items():
+        setattr(opt, k, v)
+    main(opt)
+    return opt
 
 if __name__ == '__main__':
     main()
