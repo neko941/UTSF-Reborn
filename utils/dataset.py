@@ -55,7 +55,7 @@ class DatasetController():
 
         self.num_samples = []
 
-    def execute(self, shuffle):
+    def execute(self):
         assert self.dataPaths is not None
         self.GetDataPaths(self.dataPaths)
         self.ReadFileAddFetures(csvs=self.dataFilePaths, dirAsFeature=self.dirAsFeature, hasHeader=True)
@@ -63,7 +63,10 @@ class DatasetController():
         self.GetUsedColumn()
         self.GetSegmentFeature(dirAsFeature=self.dirAsFeature, splitDirFeature=self.splitDirFeature, splitFeature=self.splitFeature)
         self.SplittingData(splitRatio=self.splitRatio, lag=self.lag, ahead=self.ahead, offset=self.offset, multimodels=False)      
-        self.save(save_dir=self.savePath)
+        self.SaveData(save_dir=self.savePath)
+        return self
+
+    def GetData(self, shuffle):
         if shuffle:
             np.random.shuffle(self.X_train)
             np.random.shuffle(self.y_train)
@@ -71,7 +74,7 @@ class DatasetController():
             np.random.shuffle(self.y_val)
             np.random.shuffle(self.X_test)
             np.random.shuffle(self.y_test)
-        return self
+        return self.X_train, self.y_train, self.X_val, self.y_val, self.X_test, self.y_test
 
     def GetDataPaths(self, dataPaths=None, extensions=('.csv')):
         if dataPaths: self.dataPaths = dataPaths
@@ -256,7 +259,7 @@ class DatasetController():
         self.X_test = np.array(self.X_test)
         self.y_test = np.array(self.y_test)
     
-    def save(self, save_dir):
+    def SaveData(self, save_dir):
         save_dir = os.path.join(save_dir, 'values')
         os.makedirs(save_dir, exist_ok=True)
         np.save(open(os.path.join(save_dir, 'X_train.npy'), 'wb'), self.X_train)

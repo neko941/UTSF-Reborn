@@ -1,0 +1,6 @@
+data: data/climate/weatherHistory_simple.csv
+target: Temperature (C)
+date: Formatted Date
+features: 
+time_id:
+delimiter: ','
