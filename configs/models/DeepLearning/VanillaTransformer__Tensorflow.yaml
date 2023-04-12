@@ -1,0 +1,7 @@
+units: [128]
+activations: []
+dropouts: [0, 0]
+head_size: 256
+num_heads: 4
+ff_dim: 4
+num_transformer_blocks: 4

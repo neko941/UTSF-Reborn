@@ -12,6 +12,7 @@ absl.logging.set_verbosity(absl.logging.ERROR) # disable absl INFO and WARNING l
 
 import matplotlib.pyplot as plt 
 from models.LSTM import BiLSTM__Tensorflow
+from models.Transformer import VanillaTransformer__Tensorflow
 from utils.dataset import DatasetController
 from utils.visualize import save_plot
 from utils.general import increment_path
@@ -47,6 +48,8 @@ def train(model, modelConfigs, data, save_dir, ahead,
               X_val=data[1][0], y_val=data[1][1])
     model.save(save_dir=save_dir, file_name=model.__class__.__name__)
     yhat = model.predict(X=data[2][0])
+    ytrainhat = model.predict(X=data[0][0])
+    yvalhat = model.predict(X=data[1][0])
     scores = model.score(y=data[2][1], 
                          yhat=yhat, 
                          r=4,
@@ -55,15 +58,36 @@ def train(model, modelConfigs, data, save_dir, ahead,
     if ahead == 1:
         visualize_path = os.path.join(save_dir, 'plots')
         os.makedirs(name=visualize_path, exist_ok=True)
-        save_plot(filename=os.path.join(visualize_path, f'{model.__class__.__name__}.png'),
-                    data=[{'data': [range(len(data[2][1])), data[2][1]],
-                            'color': 'green',
-                            'label': 'y'},
-                            {'data': [range(len(yhat)), yhat],
-                            'color': 'red',
-                            'label': 'yhat'}],
-                    xlabel='Sample',
-                    ylabel='Value')
+
+        save_plot(filename=os.path.join(visualize_path, f'{model.__class__.__name__}-Test.png'),
+                  data=[{'data': [range(len(data[2][1])), data[2][1]],
+                         'color': 'green',
+                         'label': 'y'},
+                        {'data': [range(len(yhat)), yhat],
+                         'color': 'red',
+                         'label': 'yhat'}],
+                  xlabel='Sample',
+                  ylabel='Value')
+
+        save_plot(filename=os.path.join(visualize_path, f'{model.__class__.__name__}-Train.png'),
+                  data=[{'data': [range(len(data[0][1])), data[0][1]],
+                         'color': 'green',
+                         'label': 'y'},
+                        {'data': [range(len(ytrainhat)), ytrainhat],
+                         'color': 'red',
+                         'label': 'yhat'}],
+                  xlabel='Sample',
+                  ylabel='Value')
+
+        save_plot(filename=os.path.join(visualize_path, f'{model.__class__.__name__}-Val.png'),
+                  data=[{'data': [range(len(data[1][1])), data[1][1]],
+                         'color': 'green',
+                         'label': 'y'},
+                        {'data': [range(len(yvalhat)), yvalhat],
+                         'color': 'red',
+                         'label': 'yhat'}],
+                  xlabel='Sample',
+                  ylabel='Value')
 
 def main():
     path = r'.\configs\datasets\salinity-4_ids-split_column.yaml'
@@ -108,11 +132,17 @@ def main():
                                 savePath=save_dir).execute(cyclicalPattern=cyclicalPattern)
     X_train, y_train, X_val, y_val, X_test, y_test = dataset.GetData(shuffle=False)
 
-    model_dict = [{ 
+    model_dict = [
+    { 
         'model' : BiLSTM__Tensorflow,
         'help' : '',
         'type' : 'Tensorflow',
         'config' : r'.\configs\models\DeepLearning\BiLSTM__Tensorflow.yaml'
+    },{
+        'model' : VanillaTransformer__Tensorflow,
+        'help' : '',
+        'type' : 'Tensorflow',
+        'config' : r'.\configs\models\DeepLearning\VanillaTransformer__Tensorflow.yaml'
     }]
 
     for item in model_dict:

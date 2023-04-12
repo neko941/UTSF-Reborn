@@ -72,10 +72,10 @@ class TensorflowModel(BaseModel):
             'MSE' : MeanSquaredError,
             'SGD' : SGD
         }
-        modelConfigs = yaml_load(modelConfigs)
-        self.units = modelConfigs['units']
-        self.activations = [ele if ele != 'None' else None for ele in modelConfigs['activations']]
-        self.dropouts = modelConfigs['dropouts']
+        self.modelConfigs = yaml_load(modelConfigs)
+        self.units = self.modelConfigs['units']
+        self.activations = [ele if ele != 'None' else None for ele in self.modelConfigs['activations']]
+        self.dropouts = self.modelConfigs['dropouts']
         self.seed = seed
         self.normalize_layer = normalize_layer
         self.input_shape = input_shape
