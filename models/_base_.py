@@ -6,13 +6,22 @@ import time
 import tensorflow as tf
 
 from keras.optimizers import SGD
+from keras.optimizers import Ftrl
 from keras.optimizers import Adam
+from keras.optimizers import Nadam
+from keras.optimizers import RMSprop
+from keras.optimizers import Adagrad
+from keras.optimizers import Adamax
+from keras.optimizers import Adadelta
 from tensorflow.keras.optimizers import AdamW
-from keras.losses import MeanSquaredError
+from tensorflow.keras.optimizers import Adafactor
+
 from keras.callbacks import CSVLogger
 from keras.callbacks import EarlyStopping
 from keras.callbacks import ModelCheckpoint
 from keras.callbacks import ReduceLROnPlateau
+
+from keras.losses import MeanSquaredError
 from keras.models import Sequential 
 from keras.layers import Input
 
@@ -85,11 +94,18 @@ class TensorflowModel(BaseModel):
     def __init__(self, modelConfigs, input_shape, output_shape, normalize_layer=None, seed=941, **kwargs):
         super().__init__()
         self.function_dict = {
-            'Adam' : Adam,
             'MSE' : MeanSquaredError,
+            'Adam' : Adam,
             'SGD' : SGD,
-            'AdamW' : AdamW
-            }
+            'AdamW' : AdamW,
+            'Nadam' : Nadam,
+            'RMSprop' : RMSprop,
+            'Adafactor' : Adafactor,
+            'Adadelta' : Adadelta,
+            'Adagrad' : Adagrad,
+            'Adamax' : Adamax,
+            'Ftrl' : Ftrl
+        }
         self.modelConfigs = yaml_load(modelConfigs)
         self.units = self.modelConfigs['units']
         self.activations = [ele if ele != 'None' else None for ele in self.modelConfigs['activations']]
