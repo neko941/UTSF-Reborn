@@ -4,3 +4,6 @@ date: dt
 features: station
 time_id:
 delimiter: ","
+split_feature: station # or None
+dir_as_feature: 0
+split_dir_feature: 0

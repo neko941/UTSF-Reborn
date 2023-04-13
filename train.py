@@ -11,9 +11,8 @@ import absl.logging
 absl.logging.set_verbosity(absl.logging.ERROR) # disable absl INFO and WARNING log messages
 
 import matplotlib.pyplot as plt 
-from models.LSTM import BiLSTM__Tensorflow
-from models.Transformer import VanillaTransformer__Tensorflow
 from utils.dataset import DatasetController
+from utils.option import model_dict
 from utils.visualize import save_plot
 from utils.general import increment_path
 
@@ -92,21 +91,17 @@ def train(model, modelConfigs, data, save_dir, ahead,
 def main():
     path = r'.\configs\datasets\salinity-615_csv-lag5-ahead1-offset1.yaml'
     granularity = None
-    splitFeature = None
     startTimeId = None
 
     # path = r'.\configs\datasets\salinity-1_id-split_column.yaml'
     # granularity = 1440
-    # splitFeature = 'station'
     # startTimeId = 0
 
     # path = r'.\configs\datasets\traffic-1_id-split_column.yaml'
-    # splitFeature = 'current_geopath_id'  
     # granularity = 5 
     # startTimeId = 240
 
     # path = r'.\configs\datasets\weather_history-0_id-no_split_column.yaml'
-    # splitFeature = None  
     # granularity = 60
     # startTimeId = 0
 
@@ -125,10 +120,8 @@ def main():
     batchsz = 64
 
     dataset = DatasetController(configsPath=path,
-                                dirAsFeature=0,
                                 granularity=granularity,
                                 startTimeId=startTimeId,
-                                splitFeature=splitFeature,
                                 splitRatio=splitRatio,
                                 workers=workers,
                                 lag=lag, 
@@ -136,19 +129,6 @@ def main():
                                 offset=offset,
                                 savePath=save_dir).execute(cyclicalPattern=cyclicalPattern)
     X_train, y_train, X_val, y_val, X_test, y_test = dataset.GetData(shuffle=False)
-
-    model_dict = [
-    { 
-        'model' : BiLSTM__Tensorflow,
-        'help' : '',
-        'type' : 'Tensorflow',
-        'config' : r'.\configs\models\DeepLearning\BiLSTM__Tensorflow.yaml'
-    # },{
-    #     'model' : VanillaTransformer__Tensorflow,
-    #     'help' : '',
-    #     'type' : 'Tensorflow',
-    #     'config' : r'.\configs\models\DeepLearning\VanillaTransformer__Tensorflow.yaml'
-    }]
 
     for item in model_dict:
         # if not vars(opt)[f'{item["model"].__name__}']: continue

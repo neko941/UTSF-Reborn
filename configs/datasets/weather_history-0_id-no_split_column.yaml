@@ -4,3 +4,6 @@ date: Formatted Date
 features: 
 time_id:
 delimiter: ','
+split_feature: 
+dir_as_feature: 0
+split_dir_feature: 0

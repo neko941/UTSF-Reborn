@@ -1,4 +1,5 @@
 import os
+import json
 import time
 import numpy as np
 import polars as pl
@@ -19,8 +20,7 @@ from rich.progress import MofNCompleteColumn
 from rich.progress import TimeRemainingColumn
 
 class DatasetController():
-    def __init__(self, configsPath=None, dirAsFeature=0, splitDirFeature=0, splitFeature=None, granularity=1, startTimeId=0, workers=8, splitRatio=(0.7, 0.2, 0.1), lag=3, ahead=1, offset=1, savePath='.'):
-        
+    def __init__(self, configsPath=None, granularity=1, startTimeId=0, workers=8, splitRatio=(0.7, 0.2, 0.1), lag=3, ahead=1, offset=1, savePath='.'):
         """ Read data config """
         self.dataConfigs = yaml_load(configsPath)
 
@@ -31,13 +31,16 @@ class DatasetController():
             self.targetFeatures = self.dataConfigs['target']
             self.delimiter = self.dataConfigs['delimiter']
             self.trainFeatures = list_convert(self.dataConfigs['features'])
+            self.dirAsFeature = self.dataConfigs['dir_as_feature']
+            self.splitDirFeature = self.dataConfigs['split_dir_feature']
+            self.splitFeature = self.dataConfigs['split_feature']
             self.X_train = []
             self.y_train = []
             self.X_val = []
             self.y_val = []
             self.X_test = []
             self.y_test = []
-        except:
+        except KeyError:
             self.X_train = np.load(self.dataConfigs['X_train'])
             self.y_train = np.load(self.dataConfigs['y_train'])
             self.X_val = np.load(self.dataConfigs['X_val'])
@@ -46,9 +49,6 @@ class DatasetController():
             self.y_test = np.load(self.dataConfigs['y_test'])
 
         self.configsPath = configsPath
-        self.dirAsFeature = dirAsFeature
-        self.splitDirFeature = splitDirFeature
-        self.splitFeature = splitFeature
         self.workers = workers
         self.granularity = granularity
         self.startTimeId = startTimeId
@@ -298,6 +298,9 @@ class DatasetController():
             self.y_val.extend(y[1])
             self.X_test.extend(x[2])
             self.y_test.extend(y[2])
+            self.num_samples.append({'train': len(y[0]),
+                                     'val': len(y[1]),
+                                     'test': len(y[2])})
 
         self.X_train = np.array(self.X_train)
         self.y_train = np.array(self.y_train)
@@ -306,10 +309,15 @@ class DatasetController():
         self.X_test = np.array(self.X_test)
         self.y_test = np.array(self.y_test)
     
-    def SaveData(self, save_dir):
-        self.df.write_csv(os.path.join(save_dir, 'data_processed.csv'))
+    def SaveData(self, save_dir=None):
+        if not save_dir: save_dir = self.save_dir
         save_dir = os.path.join(save_dir, 'values')
         os.makedirs(save_dir, exist_ok=True)
+
+        if self.df is not None: self.df.write_csv(os.path.join(save_dir, 'data_processed.csv'))
+        if len(self.num_samples) != 0: 
+            with open(os.path.join(save_dir, "num_samples.json"), "w") as final: 
+                json.dump(self.num_samples, final, indent=4) 
         np.save(open(os.path.join(save_dir, 'X_train.npy'), 'wb'), self.X_train)
         np.save(open(os.path.join(save_dir, 'y_train.npy'), 'wb'), self.y_train)
         np.save(open(os.path.join(save_dir, 'X_val.npy'), 'wb'), self.X_val)
