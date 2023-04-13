@@ -41,13 +41,13 @@ def main(opt):
     # opt.granularity = None
     # opt.startTimeId = None
 
-    # opt.dataConfigs = r'.\configs\datasets\salinity-1_id-split_column.yaml'
-    # opt.granularity = 1440
-    # opt.startTimeId = 0
+    opt.dataConfigs = r'.\configs\datasets\salinity-1_id-split_column.yaml'
+    opt.granularity = 1440
+    opt.startTimeId = 0
 
-    opt.dataConfigs= r'.\configs\datasets\traffic-1_id-split_column.yaml'
-    opt.granularity = 5 
-    opt.startTimeId = 240
+    # opt.dataConfigs= r'.\configs\datasets\traffic-1_id-split_column.yaml'
+    # opt.granularity = 5 
+    # opt.startTimeId = 240
 
     # path = r'.\configs\datasets\weather_history-0_id-no_split_column.yaml'
     # granularity = 60
@@ -67,7 +67,8 @@ def main(opt):
                                 lag=opt.lag, 
                                 ahead=opt.ahead, 
                                 offset=opt.offset,
-                                savePath=save_dir).execute(cyclicalPattern=opt.cyclicalPattern)
+                                savePath=save_dir,
+                                filling=opt.filling).execute(cyclicalPattern=opt.cyclicalPattern)
     X_train, y_train, X_val, y_val, X_test, y_test = dataset.GetData(shuffle=shuffle)
 
     for item in model_dict:
@@ -84,7 +85,8 @@ def main(opt):
               patience=opt.patience,
               optimizer=opt.optimizer, 
               loss=opt.loss,
-              batchsz=opt.batchsz)
+              batchsz=opt.batchsz,
+              r=opt.round)
 
 def train(model, modelConfigs, data, save_dir, ahead,
           seed=941, 
@@ -94,7 +96,8 @@ def train(model, modelConfigs, data, save_dir, ahead,
           patience=1_000,
           optimizer='Adam', 
           loss='MSE',
-          batchsz=64):
+          batchsz=64,
+          r=4):
     model = model(input_shape=data[0][0].shape[-2:],
                   modelConfigs=modelConfigs, 
                   output_shape=ahead, 
@@ -110,13 +113,13 @@ def train(model, modelConfigs, data, save_dir, ahead,
               batchsz=batchsz,
               X_train=data[0][0], y_train=data[0][1],
               X_val=data[1][0], y_val=data[1][1])
-    model.save(save_dir=save_dir, file_name=model.__class__.__name__)
+    model.save(save_dir=save_dir, file_name=f'{model.__class__.__name__}_last')
     yhat = model.predict(X=data[2][0])
     ytrainhat = model.predict(X=data[0][0])
     yvalhat = model.predict(X=data[1][0])
     scores = model.score(y=data[2][1], 
                          yhat=yhat, 
-                         r=4,
+                         r=r,
                          path=save_dir)
     print(f'{scores = }')
     print(f'{model.time_used = }')

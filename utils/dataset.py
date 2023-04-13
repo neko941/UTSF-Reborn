@@ -20,7 +20,7 @@ from rich.progress import MofNCompleteColumn
 from rich.progress import TimeRemainingColumn
 
 class DatasetController():
-    def __init__(self, configsPath=None, granularity=1, startTimeId=0, workers=8, splitRatio=(0.7, 0.2, 0.1), lag=3, ahead=1, offset=1, savePath='.'):
+    def __init__(self, configsPath=None, granularity=1, startTimeId=0, workers=8, splitRatio=(0.7, 0.2, 0.1), lag=3, ahead=1, offset=1, savePath='.', filling=None):
         """ Read data config """
         self.dataConfigs = yaml_load(configsPath)
 
@@ -57,6 +57,7 @@ class DatasetController():
         self.ahead = ahead
         self.offset = offset
         self.savePath = savePath
+        self.filling = filling
 
         self.df = None
         self.dataFilePaths = []
@@ -71,11 +72,35 @@ class DatasetController():
             self.ReadFileAddFetures(csvs=self.dataFilePaths, dirAsFeature=self.dirAsFeature, hasHeader=True)
             self.TimeIDToDateTime(timeIDColumn=self.timeID, granularity=self.granularity, startTimeId=self.startTimeId)
             self.GetSegmentFeature(dirAsFeature=self.dirAsFeature, splitDirFeature=self.splitDirFeature, splitFeature=self.splitFeature)
-            if cyclicalPattern: self.CyclicalPattern()
             self.GetUsedColumn()
+            if self.filling: self.FillingMissingData(strategy=self.filling)
+            if cyclicalPattern: self.CyclicalPattern()
             self.SplittingData(splitRatio=self.splitRatio, lag=self.lag, ahead=self.ahead, offset=self.offset, multimodels=False)      
             self.SaveData(save_dir=self.savePath)
         return self
+
+    def FillingMissingData(self, strategy):
+        assert self.dateFeature is not None
+        if self.segmentFeature:
+            if self.dateFeature: self.df = self.df.sort(by=[self.segmentFeature, self.dateFeature])
+            else: self.df = self.df.sort(by=[self.segmentFeature])
+        
+        if self.segmentFeature:
+            dfs = None
+            for ele in self.df[self.segmentFeature].unique():
+                df = self.df.filter(pl.col(self.segmentFeature) == ele).clone()
+                df = self.FillDate(df=df)
+                df = df.with_columns(pl.col(self.segmentFeature).fill_null(pl.lit(ele)))
+                for f in [feature for feature in [*self.trainFeatures, self.targetFeatures] if feature != self.segmentFeature]:
+                    df = df.with_columns(pl.col(f).fill_null(strategy=strategy))
+                if dfs is None: dfs = df
+                else: dfs = pl.concat([dfs, df])
+            self.df = dfs
+        else: 
+            self.df = self.FillDate(df=self.df)
+            for f in [feature for feature in [*self.trainFeatures, self.targetFeatures] if feature != self.segmentFeature]:
+                self.df = df.with_columns(pl.col(f).fill_null(strategy=strategy))
+            # self.df = self.TimeEncoder(df=self.df).drop_nulls()
 
     def GetData(self, shuffle):
         if shuffle:
