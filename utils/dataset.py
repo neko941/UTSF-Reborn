@@ -24,13 +24,27 @@ class DatasetController():
         """ Read data config """
         self.dataConfigs = yaml_load(configsPath)
 
-        self.dataPaths = self.dataConfigs['data']
-        self.dateFeature = self.dataConfigs['date']
-        self.timeID = self.dataConfigs['time_id']
-        self.targetFeatures = self.dataConfigs['target']
-        self.delimiter = self.dataConfigs['delimiter']
-        self.trainFeatures = list_convert(self.dataConfigs['features'])
-        
+        try:
+            self.dataPaths = self.dataConfigs['data']
+            self.dateFeature = self.dataConfigs['date']
+            self.timeID = self.dataConfigs['time_id']
+            self.targetFeatures = self.dataConfigs['target']
+            self.delimiter = self.dataConfigs['delimiter']
+            self.trainFeatures = list_convert(self.dataConfigs['features'])
+            self.X_train = []
+            self.y_train = []
+            self.X_val = []
+            self.y_val = []
+            self.X_test = []
+            self.y_test = []
+        except:
+            self.X_train = np.load(self.dataConfigs['X_train'])
+            self.y_train = np.load(self.dataConfigs['y_train'])
+            self.X_val = np.load(self.dataConfigs['X_val'])
+            self.y_val = np.load(self.dataConfigs['y_val'])
+            self.X_test = np.load(self.dataConfigs['X_test'])
+            self.y_test = np.load(self.dataConfigs['y_test'])
+
         self.configsPath = configsPath
         self.dirAsFeature = dirAsFeature
         self.splitDirFeature = splitDirFeature
@@ -48,25 +62,19 @@ class DatasetController():
         self.dataFilePaths = []
         self.dirFeatures = []
         self.segmentFeature = None
-        self.X_train = []
-        self.y_train = []
-        self.X_val = []
-        self.y_val = []
-        self.X_test = []
-        self.y_test = []
 
         self.num_samples = []
 
     def execute(self, cyclicalPattern=False):
-        assert self.dataPaths is not None
-        self.GetDataPaths(self.dataPaths)
-        self.ReadFileAddFetures(csvs=self.dataFilePaths, dirAsFeature=self.dirAsFeature, hasHeader=True)
-        self.TimeIDToDateTime(timeIDColumn=self.timeID, granularity=self.granularity, startTimeId=self.startTimeId)
-        self.GetSegmentFeature(dirAsFeature=self.dirAsFeature, splitDirFeature=self.splitDirFeature, splitFeature=self.splitFeature)
-        if cyclicalPattern: self.CyclicalPattern()
-        self.GetUsedColumn()
-        self.SplittingData(splitRatio=self.splitRatio, lag=self.lag, ahead=self.ahead, offset=self.offset, multimodels=False)      
-        self.SaveData(save_dir=self.savePath)
+        if len(self.y_train) == 0:
+            self.GetDataPaths(self.dataPaths)
+            self.ReadFileAddFetures(csvs=self.dataFilePaths, dirAsFeature=self.dirAsFeature, hasHeader=True)
+            self.TimeIDToDateTime(timeIDColumn=self.timeID, granularity=self.granularity, startTimeId=self.startTimeId)
+            self.GetSegmentFeature(dirAsFeature=self.dirAsFeature, splitDirFeature=self.splitDirFeature, splitFeature=self.splitFeature)
+            if cyclicalPattern: self.CyclicalPattern()
+            self.GetUsedColumn()
+            self.SplittingData(splitRatio=self.splitRatio, lag=self.lag, ahead=self.ahead, offset=self.offset, multimodels=False)      
+            self.SaveData(save_dir=self.savePath)
         return self
 
     def GetData(self, shuffle):

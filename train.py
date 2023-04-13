@@ -90,10 +90,15 @@ def train(model, modelConfigs, data, save_dir, ahead,
                   ylabel='Value')
 
 def main():
-    path = r'.\configs\datasets\salinity-4_ids-split_column.yaml'
-    granularity = 1440
-    splitFeature = 'station'
-    startTimeId = 0
+    path = r'.\configs\datasets\salinity-615_csv-lag5-ahead1-offset1.yaml'
+    granularity = None
+    splitFeature = None
+    startTimeId = None
+
+    # path = r'.\configs\datasets\salinity-1_id-split_column.yaml'
+    # granularity = 1440
+    # splitFeature = 'station'
+    # startTimeId = 0
 
     # path = r'.\configs\datasets\traffic-1_id-split_column.yaml'
     # splitFeature = 'current_geopath_id'  
@@ -105,7 +110,7 @@ def main():
     # granularity = 60
     # startTimeId = 0
 
-    lag = 1
+    lag = 5
     ahead = 1
     offset = 1
     workers = 8
@@ -138,11 +143,11 @@ def main():
         'help' : '',
         'type' : 'Tensorflow',
         'config' : r'.\configs\models\DeepLearning\BiLSTM__Tensorflow.yaml'
-    },{
-        'model' : VanillaTransformer__Tensorflow,
-        'help' : '',
-        'type' : 'Tensorflow',
-        'config' : r'.\configs\models\DeepLearning\VanillaTransformer__Tensorflow.yaml'
+    # },{
+    #     'model' : VanillaTransformer__Tensorflow,
+    #     'help' : '',
+    #     'type' : 'Tensorflow',
+    #     'config' : r'.\configs\models\DeepLearning\VanillaTransformer__Tensorflow.yaml'
     }]
 
     for item in model_dict:
