@@ -84,10 +84,12 @@ class BaseModel:
 class TensorflowModel(BaseModel):
     def __init__(self, modelConfigs, input_shape, output_shape, normalize_layer=None, seed=941, **kwargs):
         super().__init__()
-        self.function_dict = {'Adam' : Adam,
-                              'MSE' : MeanSquaredError,
-                              'SGD' : SGD,
-                              'AdamW' : AdamW}
+        self.function_dict = {
+            'Adam' : Adam,
+            'MSE' : MeanSquaredError,
+            'SGD' : SGD,
+            'AdamW' : AdamW
+            }
         self.modelConfigs = yaml_load(modelConfigs)
         self.units = self.modelConfigs['units']
         self.activations = [ele if ele != 'None' else None for ele in self.modelConfigs['activations']]
@@ -98,20 +100,30 @@ class TensorflowModel(BaseModel):
         self.output_shape = output_shape
         
     def callbacks(self, patience, save_dir, min_delta=0.001, extension='.h5'):
-        weight_path = os.path.join(save_dir, 'weights')
+        weight_path = os.path.join(save_dir, self.dir_weight)
         os.makedirs(name=weight_path, exist_ok=True)
-        log_path = os.path.join(save_dir, 'logs')
+        log_path = os.path.join(save_dir, self.dir_log)
         os.makedirs(name=log_path, exist_ok=True)
+        # model_path = os.path.join(save_dir, self.dir_model)
+        # os.makedirs(name=model_path, exist_ok=True)
 
         return [EarlyStopping(monitor='val_loss', patience=patience, min_delta=min_delta), 
                 ModelCheckpoint(filepath=os.path.join(weight_path, f"{self.__class__.__name__}_best{extension}"),
                                 save_best_only=True,
-                                save_weights_only=False,
+                                save_weights_only=True,
                                 verbose=0), 
                 ModelCheckpoint(filepath=os.path.join(weight_path, f"{self.__class__.__name__}_last{extension}"),
                                 save_best_only=False,
-                                save_weights_only=False,
+                                save_weights_only=True,
                                 verbose=0),
+                # ModelCheckpoint(filepath=os.path.join(model_path, f"{self.__class__.__name__}_best"),
+                #                 save_best_only=True,
+                #                 save_weights_only=False,
+                #                 verbose=0), 
+                # ModelCheckpoint(filepath=os.path.join(model_path, f"{self.__class__.__name__}_last"),
+                #                 save_best_only=False,
+                #                 save_weights_only=False,
+                #                 verbose=0),
                 ReduceLROnPlateau(monitor='val_loss',
                                   factor=0.1,
                                   patience=patience / 5,

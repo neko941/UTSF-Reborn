@@ -41,7 +41,11 @@ def main(opt):
     # opt.granularity = None
     # opt.startTimeId = None
 
-    opt.dataConfigs = r'.\configs\datasets\salinity-1_id-split_column.yaml'
+    # opt.dataConfigs = r'.\configs\datasets\salinity-1_id-split_column.yaml'
+    # opt.granularity = 1440
+    # opt.startTimeId = 0
+
+    opt.dataConfigs = r'.\configs\datasets\salinity-4_ids-split_column.yaml'
     opt.granularity = 1440
     opt.startTimeId = 0
 
@@ -113,7 +117,7 @@ def train(model, modelConfigs, data, save_dir, ahead,
               batchsz=batchsz,
               X_train=data[0][0], y_train=data[0][1],
               X_val=data[1][0], y_val=data[1][1])
-    model.save(save_dir=save_dir, file_name=f'{model.__class__.__name__}_last')
+    model.save(save_dir=save_dir, file_name=f'{model.__class__.__name__}')
     yhat = model.predict(X=data[2][0])
     ytrainhat = model.predict(X=data[0][0])
     yvalhat = model.predict(X=data[1][0])

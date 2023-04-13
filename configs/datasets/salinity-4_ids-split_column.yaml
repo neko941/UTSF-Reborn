@@ -1,0 +1,9 @@
+data: data/salinity/raw/2019.csv
+target: average
+date: dt
+features: station
+time_id:
+delimiter: ","
+split_feature: station 
+dir_as_feature: 0
+split_dir_feature: 0
