@@ -41,13 +41,13 @@ def main(opt):
     # opt.granularity = None
     # opt.startTimeId = None
 
-    opt.dataConfigs = r'.\configs\datasets\salinity-1_id-split_column.yaml'
-    opt.granularity = 1440
-    opt.startTimeId = 0
+    # opt.dataConfigs = r'.\configs\datasets\salinity-1_id-split_column.yaml'
+    # opt.granularity = 1440
+    # opt.startTimeId = 0
 
-    # path = r'.\configs\datasets\traffic-1_id-split_column.yaml'
-    # granularity = 5 
-    # startTimeId = 240
+    opt.dataConfigs= r'.\configs\datasets\traffic-1_id-split_column.yaml'
+    opt.granularity = 5 
+    opt.startTimeId = 240
 
     # path = r'.\configs\datasets\weather_history-0_id-no_split_column.yaml'
     # granularity = 60

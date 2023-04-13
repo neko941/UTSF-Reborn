@@ -7,6 +7,7 @@ import tensorflow as tf
 
 from keras.optimizers import SGD
 from keras.optimizers import Adam
+from tensorflow.keras.optimizers import AdamW
 from keras.losses import MeanSquaredError
 from keras.callbacks import CSVLogger
 from keras.callbacks import EarlyStopping
@@ -85,7 +86,8 @@ class TensorflowModel(BaseModel):
         super().__init__()
         self.function_dict = {'Adam' : Adam,
                               'MSE' : MeanSquaredError,
-                              'SGD' : SGD}
+                              'SGD' : SGD,
+                              'AdamW' : AdamW}
         self.modelConfigs = yaml_load(modelConfigs)
         self.units = self.modelConfigs['units']
         self.activations = [ele if ele != 'None' else None for ele in self.modelConfigs['activations']]

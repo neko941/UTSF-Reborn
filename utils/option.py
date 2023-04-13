@@ -37,7 +37,7 @@ def parse_opt(ROOT, known=False):
     parser.add_argument('--name', default='exp', help='save to project/name')
     parser.add_argument('--overwrite', action='store_true', help='existing project/name ok, do not increment')
     parser.add_argument('--cyclicalPattern', action='store_true', help='')
-    parser.add_argument('--optimizer', type=str, choices=['SGD', 'Adam'], default='Adam', help='optimizer')
+    parser.add_argument('--optimizer', type=str, choices=['SGD', 'Adam', 'AdamW'], default='Adam', help='optimizer')
     parser.add_argument('--loss', type=str, choices=['MSE'], default='MSE', help='losses')
     parser.add_argument('--seed', type=int, default=941, help='Global training seed')
     parser.add_argument('--round', type=int, default=-1, help='Round decimals in results, -1 to disable')
