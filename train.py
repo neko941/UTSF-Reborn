@@ -12,14 +12,79 @@ absl.logging.set_verbosity(absl.logging.ERROR) # disable absl INFO and WARNING l
 
 import matplotlib.pyplot as plt 
 from utils.dataset import DatasetController
-from utils.option import model_dict
 from utils.visualize import save_plot
+
+from utils.general import set_seed
+from utils.general import yaml_save
 from utils.general import increment_path
 
-project = ROOT / 'runs'
-name = 'exp'
-overwrite = False
-save_dir = str(increment_path(Path(project) / name, overwrite=overwrite, mkdir=True))
+from utils.option import parse_opt
+from utils.option import update_opt
+from utils.option import model_dict
+
+def main(opt):
+    """ Get the save directory for this run """
+    save_dir = str(increment_path(Path(opt.project) / opt.name, overwrite=opt.overwrite, mkdir=True))
+
+    """ Set seed """
+    opt.seed = set_seed(opt.seed)
+
+    """ Save init options """
+    yaml_save(os.path.join(save_dir, 'opt.yaml'), vars(opt))
+
+    """ Update options """
+    opt = update_opt(opt)
+
+    """ Fixed config for testing """
+    opt.BiLSTM__Tensorflow = True
+    opt.dataConfigs = r'.\configs\datasets\salinity-615_csv-lag5-ahead1-offset1.yaml'
+    opt.granularity = None
+    opt.startTimeId = None
+
+    # path = r'.\configs\datasets\salinity-1_id-split_column.yaml'
+    # granularity = 1440
+    # startTimeId = 0
+
+    # path = r'.\configs\datasets\traffic-1_id-split_column.yaml'
+    # granularity = 5 
+    # startTimeId = 240
+
+    # path = r'.\configs\datasets\weather_history-0_id-no_split_column.yaml'
+    # granularity = 60
+    # startTimeId = 0
+
+    shuffle = False
+
+    """ Save updated options """
+    yaml_save(os.path.join(save_dir, 'updated_opt.yaml'), vars(opt))
+
+    """ Preprocessing dataset """
+    dataset = DatasetController(configsPath=opt.dataConfigs,
+                                granularity=opt.granularity,
+                                startTimeId=opt.startTimeId,
+                                splitRatio=(opt.trainsz, opt.valsz, 1-opt.trainsz-opt.valsz),
+                                workers=opt.workers,
+                                lag=opt.lag, 
+                                ahead=opt.ahead, 
+                                offset=opt.offset,
+                                savePath=save_dir).execute(cyclicalPattern=opt.cyclicalPattern)
+    X_train, y_train, X_val, y_val, X_test, y_test = dataset.GetData(shuffle=shuffle)
+
+    for item in model_dict:
+        if not vars(opt)[f'{item["model"].__name__}']: continue
+        train(model=item['model'], 
+              modelConfigs=item['config'], 
+              data=[[X_train, y_train], [X_val, y_val], [X_test, y_test]], 
+              save_dir=save_dir,
+              ahead=opt.ahead, 
+              seed=opt.seed, 
+              normalize_layer=None,
+              learning_rate=opt.lr,
+              epochs=opt.epochs, 
+              patience=opt.patience,
+              optimizer=opt.optimizer, 
+              loss=opt.loss,
+              batchsz=opt.batchsz)
 
 def train(model, modelConfigs, data, save_dir, ahead,
           seed=941, 
@@ -87,72 +152,29 @@ def train(model, modelConfigs, data, save_dir, ahead,
                          'label': 'yhat'}],
                   xlabel='Sample',
                   ylabel='Value')
-
-def main():
-    path = r'.\configs\datasets\salinity-615_csv-lag5-ahead1-offset1.yaml'
-    granularity = None
-    startTimeId = None
-
-    # path = r'.\configs\datasets\salinity-1_id-split_column.yaml'
-    # granularity = 1440
-    # startTimeId = 0
-
-    # path = r'.\configs\datasets\traffic-1_id-split_column.yaml'
-    # granularity = 5 
-    # startTimeId = 240
-
-    # path = r'.\configs\datasets\weather_history-0_id-no_split_column.yaml'
-    # granularity = 60
-    # startTimeId = 0
-
-    lag = 5
-    ahead = 1
-    offset = 1
-    workers = 8
-    splitRatio = (0.7, 0.2, 0.1)
-    seed = 941
-    cyclicalPattern = False
-    patience = 1_000
-    optimizer = 'Adam'
-    loss = 'MSE'
-    epochs = 10_000_000
-    learning_rate = 0.001
-    batchsz = 64
-
-    dataset = DatasetController(configsPath=path,
-                                granularity=granularity,
-                                startTimeId=startTimeId,
-                                splitRatio=splitRatio,
-                                workers=workers,
-                                lag=lag, 
-                                ahead=ahead, 
-                                offset=offset,
-                                savePath=save_dir).execute(cyclicalPattern=cyclicalPattern)
-    X_train, y_train, X_val, y_val, X_test, y_test = dataset.GetData(shuffle=False)
-
-    for item in model_dict:
-        # if not vars(opt)[f'{item["model"].__name__}']: continue
-        train(model=item['model'], 
-              modelConfigs=item['config'], 
-              data=[[X_train, y_train], [X_val, y_val], [X_test, y_test]], 
-              save_dir=save_dir,
-              ahead=ahead, 
-              seed=seed, 
-              normalize_layer=None,
-              learning_rate=learning_rate,
-              epochs=epochs, 
-              patience=patience,
-              optimizer=optimizer, 
-              loss=loss,
-              batchsz=batchsz)
+    if model.history is not None:
+        loss = model.history.history.get('loss')
+        val_loss = model.history.history.get('val_loss')
+        if all([len(loss)>1, len(val_loss)>1]):
+            save_plot(filename=os.path.join(visualize_path, f'{model.__class__.__name__}-Loss.png'),
+                        data=[{'data': [range(len(loss)), loss],
+                                'color': 'green',
+                                'label': 'loss'},
+                            {'data': [range(len(val_loss)), val_loss],
+                                'color': 'red',
+                                'label': 'val_loss'}],
+                        xlabel='Epoch',
+                        ylabel='Loss Value')
 
 def run(**kwargs):
     """ 
     Usage (example)
-        import main
-        main.run(all=True, 
-                 source=data.yaml,
-                 Normalization=True)
+        import train
+        train.run(all=True, 
+                  configsPath=data.yaml,
+                  lag=5,
+                  ahead=1,
+                  offset=1)
     """
     opt = parse_opt(True)
     for k, v in kwargs.items():
@@ -160,5 +182,6 @@ def run(**kwargs):
     main(opt)
     return opt
 
-if __name__ == '__main__':
-    main()
+if __name__ == "__main__":
+    opt = parse_opt(ROOT=ROOT)
+    main(opt)

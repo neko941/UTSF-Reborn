@@ -63,7 +63,7 @@ def convert_seconds(seconds):
     if len(time_units) == 0: time_units.append(f"{seconds}s")
     return "".join(time_units)
 
-def SetSeed(seed: Optional[int] = None, workers: bool = False) -> int:
+def set_seed(seed: Optional[int] = None, workers: bool = False) -> int:
     """Function that sets seed for pseudo-random number generators in: pytorch, numpy, python.random In addition,
     sets the following environment variables:
     - `PL_GLOBAL_SEED`: will be passed to spawned subprocesses (e.g. ddp_spawn backend).
