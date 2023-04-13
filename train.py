@@ -37,13 +37,13 @@ def main(opt):
 
     """ Fixed config for testing """
     opt.BiLSTM__Tensorflow = True
-    opt.dataConfigs = r'.\configs\datasets\salinity-615_csv-lag5-ahead1-offset1.yaml'
-    opt.granularity = None
-    opt.startTimeId = None
+    # opt.dataConfigs = r'.\configs\datasets\salinity-615_csv-lag5-ahead1-offset1.yaml'
+    # opt.granularity = None
+    # opt.startTimeId = None
 
-    # path = r'.\configs\datasets\salinity-1_id-split_column.yaml'
-    # granularity = 1440
-    # startTimeId = 0
+    opt.dataConfigs = r'.\configs\datasets\salinity-1_id-split_column.yaml'
+    opt.granularity = 1440
+    opt.startTimeId = 0
 
     # path = r'.\configs\datasets\traffic-1_id-split_column.yaml'
     # granularity = 5 
@@ -118,53 +118,20 @@ def train(model, modelConfigs, data, save_dir, ahead,
                          yhat=yhat, 
                          r=4,
                          path=save_dir)
-    print(scores)
-    if ahead == 1:
-        visualize_path = os.path.join(save_dir, 'plots')
-        os.makedirs(name=visualize_path, exist_ok=True)
-
-        save_plot(filename=os.path.join(visualize_path, f'{model.__class__.__name__}-Test.png'),
-                  data=[{'data': [range(len(data[2][1])), data[2][1]],
-                         'color': 'green',
-                         'label': 'y'},
-                        {'data': [range(len(yhat)), yhat],
-                         'color': 'red',
-                         'label': 'yhat'}],
-                  xlabel='Sample',
-                  ylabel='Value')
-
-        save_plot(filename=os.path.join(visualize_path, f'{model.__class__.__name__}-Train.png'),
-                  data=[{'data': [range(len(data[0][1])), data[0][1]],
-                         'color': 'green',
-                         'label': 'y'},
-                        {'data': [range(len(ytrainhat)), ytrainhat],
-                         'color': 'red',
-                         'label': 'yhat'}],
-                  xlabel='Sample',
-                  ylabel='Value')
-
-        save_plot(filename=os.path.join(visualize_path, f'{model.__class__.__name__}-Val.png'),
-                  data=[{'data': [range(len(data[1][1])), data[1][1]],
-                         'color': 'green',
-                         'label': 'y'},
-                        {'data': [range(len(yvalhat)), yvalhat],
-                         'color': 'red',
-                         'label': 'yhat'}],
-                  xlabel='Sample',
-                  ylabel='Value')
-    if model.history is not None:
-        loss = model.history.history.get('loss')
-        val_loss = model.history.history.get('val_loss')
-        if all([len(loss)>1, len(val_loss)>1]):
-            save_plot(filename=os.path.join(visualize_path, f'{model.__class__.__name__}-Loss.png'),
-                        data=[{'data': [range(len(loss)), loss],
-                                'color': 'green',
-                                'label': 'loss'},
-                            {'data': [range(len(val_loss)), val_loss],
-                                'color': 'red',
-                                'label': 'val_loss'}],
-                        xlabel='Epoch',
-                        ylabel='Loss Value')
+    print(f'{scores = }')
+    print(f'{model.time_used = }')
+    model.plot(save_dir=save_dir,
+               y=data[0][1], 
+               yhat=ytrainhat,
+               dataset='Train')
+    model.plot(save_dir=save_dir,
+               y=data[1][1], 
+               yhat=yvalhat,
+               dataset='Val')
+    model.plot(save_dir=save_dir,
+               y=data[2][1], 
+               yhat=yhat,
+               dataset='Test')
 
 def run(**kwargs):
     """ 
