@@ -5,3 +5,4 @@ numpy==1.23.5
 polars==0.17.0
 scikit-learn==1.2.2
 matplotlib==3.7.1
+xgboost==1.7.5

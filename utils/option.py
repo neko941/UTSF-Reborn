@@ -1,19 +1,29 @@
 import argparse
 
+from models.MachineLearning import ExtremeGradientBoostingRegression
+
 from models.LSTM import BiLSTM__Tensorflow
 from models.Transformer import VanillaTransformer__Tensorflow
 
 model_dict = [
     { 
-     'model' : BiLSTM__Tensorflow,
-     'help' : '',
-     'type' : 'Tensorflow',
-     'config' : r'.\configs\models\DeepLearning\BiLSTM__Tensorflow.yaml'
+     'model'  : ExtremeGradientBoostingRegression,
+     'help'   : '',
+     'type'   : 'MachineLearning',
+     'config' : r'.\configs\models\MachineLearning\ExtremeGradientBoostingRegression.yaml',
+     'alias'  : ['XGBoost']
+    },{ 
+     'model'  : BiLSTM__Tensorflow,
+     'help'   : '',
+     'type'   : 'Tensorflow',
+     'config' : r'.\configs\models\DeepLearning\BiLSTM__Tensorflow.yaml',
+     'alias'  : []
     },{
-     'model' : VanillaTransformer__Tensorflow,
-     'help' : '',
-     'type' : 'Tensorflow',
-     'config' : r'.\configs\models\DeepLearning\VanillaTransformer__Tensorflow.yaml'
+     'model'  : VanillaTransformer__Tensorflow,
+     'help'   : '',
+     'type'   : 'Tensorflow',
+     'config' : r'.\configs\models\DeepLearning\VanillaTransformer__Tensorflow.yaml',
+     'alias'  : []
     }
 ]
 
@@ -38,7 +48,8 @@ def parse_opt(ROOT, known=False):
     parser.add_argument('--overwrite', action='store_true', help='existing project/name ok, do not increment')
     parser.add_argument('--cyclicalPattern', action='store_true', help='')
     parser.add_argument('--optimizer', type=str, choices=['SGD', 'Adam', 'AdamW', 'Nadam', 'RMSprop', 'Adafactor', 'Adadelta', 'Adagrad', 'Adamax', 'Ftrl'], default='Adam', help='optimizer')
-    parser.add_argument('--filling', type=str, choices=[None, 'forward', 'backward', 'min', 'max', 'mean'], default=None, help='optimizer')
+    parser.add_argument('--polarsFilling', type=str, choices=[None, 'forward', 'backward', 'min', 'max', 'mean'], default=None, help='')
+    parser.add_argument('--machineFilling', type=str, choices=[None, 'XGBoost'], default=None, help='')
     parser.add_argument('--loss', type=str, choices=['MSE'], default='MSE', help='losses')
     parser.add_argument('--seed', type=int, default=941, help='Global training seed')
     parser.add_argument('--round', type=int, default=-1, help='Round decimals in results, -1 to disable')
@@ -59,6 +70,8 @@ def parse_opt(ROOT, known=False):
 
     for item in model_dict:
         parser.add_argument(f"--{item['model'].__name__}", action='store_true', help=f"{item['help']}")
+        # for flag in [item['model'].__name__, *item['alias'].__name__]:
+        #     parser.add_argument(f"--{flag}", action='store_true', help=f"{item['help']}")
 
     return parser.parse_known_args()[0] if known else parser.parse_args()
 
@@ -78,4 +91,8 @@ def update_opt(opt):
                 opt.Pytorch and item['type']=='Pytorch',
                 opt.MachineLearning and item['type']=='MachineLearning']): 
             vars(opt)[f'{item["model"].__name__}'] = True
+
+    if opt.machineFilling: 
+        opt.cyclicalPattern = False
+        opt.polarsFilling=None
     return opt

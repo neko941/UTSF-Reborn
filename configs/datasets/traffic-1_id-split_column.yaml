@@ -7,3 +7,14 @@ delimiter: "|"
 split_feature: current_geopath_id # or None
 dir_as_feature: 0
 split_dir_feature: 0
+
+year_start:
+year_end:
+month_start:
+month_end:
+day_start:
+day_end:
+hour_start: 4
+hour_end: 23
+minute_start:
+minute_end:

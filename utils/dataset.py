@@ -4,12 +4,15 @@ import time
 import numpy as np
 import polars as pl
 from datetime import timedelta
+from datetime import datetime
 from dateutil.parser import parse
 from multiprocessing.pool import ThreadPool
 
 from utils.general import yaml_load
 from utils.general import list_convert
 from utils.general import flatten_list
+
+from utils.option import model_dict
 
 from rich.progress import track
 from rich.progress import Progress
@@ -20,7 +23,7 @@ from rich.progress import MofNCompleteColumn
 from rich.progress import TimeRemainingColumn
 
 class DatasetController():
-    def __init__(self, configsPath=None, granularity=1, startTimeId=0, workers=8, splitRatio=(0.7, 0.2, 0.1), lag=3, ahead=1, offset=1, savePath='.', filling=None):
+    def __init__(self, configsPath=None, granularity=1, startTimeId=0, workers=8, splitRatio=(0.7, 0.2, 0.1), lag=3, ahead=1, offset=1, savePath='.', polarsFilling=None, machineFilling=None):
         """ Read data config """
         self.dataConfigs = yaml_load(configsPath)
 
@@ -34,6 +37,18 @@ class DatasetController():
             self.dirAsFeature = self.dataConfigs['dir_as_feature']
             self.splitDirFeature = self.dataConfigs['split_dir_feature']
             self.splitFeature = self.dataConfigs['split_feature']
+
+            self.yearStart   = self.dataConfigs['year_start']
+            self.yearEnd     = self.dataConfigs['year_end']
+            self.monthStart  = self.dataConfigs['month_start']
+            self.monthEnd    = self.dataConfigs['month_end']
+            self.dayStart    = self.dataConfigs['day_start']
+            self.dayEnd      = self.dataConfigs['day_end']
+            self.hourStart   = self.dataConfigs['hour_start']
+            self.hourEnd     = self.dataConfigs['hour_end']
+            self.minuteStart = self.dataConfigs['minute_start']
+            self.minuteEnd   = self.dataConfigs['minute_end']
+            
             self.X_train = []
             self.y_train = []
             self.X_val = []
@@ -57,7 +72,8 @@ class DatasetController():
         self.ahead = ahead
         self.offset = offset
         self.savePath = savePath
-        self.filling = filling
+        self.polarsFilling = polarsFilling
+        self.machineFilling = machineFilling
 
         self.df = None
         self.dataFilePaths = []
@@ -71,20 +87,83 @@ class DatasetController():
             self.GetDataPaths(self.dataPaths)
             self.ReadFileAddFetures(csvs=self.dataFilePaths, dirAsFeature=self.dirAsFeature, hasHeader=True)
             self.TimeIDToDateTime(timeIDColumn=self.timeID, granularity=self.granularity, startTimeId=self.startTimeId)
+            self.df = self.StripDataset(df=self.df)
             self.GetSegmentFeature(dirAsFeature=self.dirAsFeature, splitDirFeature=self.splitDirFeature, splitFeature=self.splitFeature)
-            self.GetUsedColumn()
-            if self.filling: self.FillingMissingData(strategy=self.filling)
+            self.df = self.GetUsedColumn(df=self.df)
+            if self.machineFilling: self.MachineLearningFillingMissingData(model=self.machineFilling)
+            if self.polarsFilling: self.PolarsFillingMissingData(strategy=self.polarsFilling)
             if cyclicalPattern: self.CyclicalPattern()
             self.SplittingData(splitRatio=self.splitRatio, lag=self.lag, ahead=self.ahead, offset=self.offset, multimodels=False)      
             self.SaveData(save_dir=self.savePath)
         return self
 
-    def FillingMissingData(self, strategy):
-        assert self.dateFeature is not None
+    def SortDataset(self):
         if self.segmentFeature:
             if self.dateFeature: self.df = self.df.sort(by=[self.segmentFeature, self.dateFeature])
             else: self.df = self.df.sort(by=[self.segmentFeature])
-        
+
+    def StripDataset(self, df):
+        if self.yearStart  : df = df.filter(pl.col(self.dateFeature).dt.year()   >= self.yearStart)
+        if self.yearEnd    : df = df.filter(pl.col(self.dateFeature).dt.year()   <= self.yearEnd)
+        if self.monthStart : df = df.filter(pl.col(self.dateFeature).dt.month()  >= self.monthStart)
+        if self.monthEnd   : df = df.filter(pl.col(self.dateFeature).dt.month()  <= self.monthEnd)
+        if self.dayStart   : df = df.filter(pl.col(self.dateFeature).dt.day()    >= self.dayStart)
+        if self.dayEnd     : df = df.filter(pl.col(self.dateFeature).dt.day()    <= self.dayEnd)
+        if self.hourStart  : df = df.filter(pl.col(self.dateFeature).dt.hour()   >= self.hourStart)
+        if self.hourEnd    : df = df.filter(pl.col(self.dateFeature).dt.hour()   <= self.hourEnd)
+        if self.minuteStart: df = df.filter(pl.col(self.dateFeature).dt.minute() >= self.minuteStart)
+        if self.minuteEnd  : df = df.filter(pl.col(self.dateFeature).dt.minute() <= self.minuteEnd)
+
+        return df
+
+    def MachineLearningFillingMissingData(self, model):
+        self.SortDataset()
+        self.df = self.df.with_columns(pl.col(self.dateFeature).cast(pl.Datetime))
+        if self.segmentFeature:
+            dfs = None
+            for ele in self.df[self.segmentFeature].unique():
+                df = self.df.filter(pl.col(self.segmentFeature) == ele).clone()
+                df = self.FillDate(df=df)
+                df = df.with_columns(pl.col(self.segmentFeature).fill_null(pl.lit(ele)))
+                if dfs is None: dfs = df
+                else: dfs = pl.concat([dfs, df])
+            self.df = dfs
+        else: 
+            self.df = self.FillDate(df=self.df)
+        self.CyclicalPattern()
+        self.df = self.GetUsedColumn(df=self.df)
+        null_or_not = (self.df.null_count() > 0).rows(named=True)[0]
+        target = [key for key, value in null_or_not.items() if value]
+        independence = [key for key, value in null_or_not.items() if not value]
+        independence.remove(self.dateFeature)
+        for t in target:
+            with_null = self.df.filter(pl.col(t).is_null()).drop(self.dateFeature)
+            without_null = self.df.filter(pl.col(t).is_not_null()).drop(self.dateFeature)
+            for item in model_dict:
+                if item['type'] == 'MachineLearning':
+                    for flag in [item['model'].__name__, *item['alias']]:
+                        if model == flag:
+                            model = item['model'](modelConfigs=item['config'], save_dir=None)
+                            model.modelConfigs['verbosity'] = 0 
+                            model.build()
+                            model.fit(X_train=without_null[independence].to_numpy(),
+                                      y_train=without_null[target].to_numpy())
+                            with_null = with_null.with_columns(pl.lit(model.predict(with_null[independence].to_numpy())).alias(t))
+                            self.df = self.df.join(other=with_null, on=independence, how="left", suffix="_right")\
+                                             .select([
+                                                pl.when(pl.col(f'{t}_right').is_not_null())
+                                                .then(pl.col(f'{t}_right'))
+                                                .otherwise(pl.col(t))
+                                                .alias(t),
+                                                *independence,
+                                                self.dateFeature
+                                             ])
+                            break
+                    else: continue  # only executed if the inner loop did NOT break
+                    break  # only executed if the inner loop DID break
+
+    def PolarsFillingMissingData(self, strategy):
+        self.SortDataset()
         if self.segmentFeature:
             dfs = None
             for ele in self.df[self.segmentFeature].unique():
@@ -140,7 +219,6 @@ class DatasetController():
     def ReadFileAddFetures(self, csvs=None, dirAsFeature=0, newColumnName='dir', hasHeader=True):
         if csvs: self.dataFilePaths = [os.path.abspath(csv) for csv in csvs]  
         if dirAsFeature != 0: self.dirAsFeature = dirAsFeature
-        # if delimiter != ',': self.delimiter = delimiter 
 
         if self.dirAsFeature == 0:
             with self.ProgressBar() as progress:
@@ -174,8 +252,10 @@ class DatasetController():
         assert max_time_id <= 0, f'time id max should be {(24*60 - self.startTimeId) / self.granularity} else it will exceed to the next day'
         self.df = self.df.with_columns(pl.col(self.dateFeature).cast(pl.Datetime) + pl.duration(minutes=(pl.col(self.timeID)-1)*self.granularity+self.startTimeId))
     
-    def GetUsedColumn(self):
-        self.df = self.df[[col for i in [self.dateFeature, self.trainFeatures, self.targetFeatures] for col in (i if isinstance(i, list) else [i])]]
+    def GetUsedColumn(self, df, exclude_date=False):
+        if exclude_date: alist = [self.trainFeatures, self.targetFeatures]
+        else: alist = [self.dateFeature, self.trainFeatures, self.targetFeatures] 
+        return df[[col for i in alist for col in (i if isinstance(i, list) else [i])]]
 
     def UpdateDateColumnDataType(self, dateFormat='%Y-%M-%d'):
         self.df = self.df.with_columns(pl.col(self.dateFeature).str.strptime(pl.Date, fmt=dateFormat).cast(pl.Datetime))
@@ -193,7 +273,7 @@ class DatasetController():
         day = 24 * 60 * 60 # Seconds in day  
         year = (365.2425) * day # Seconds in year
 
-        df = self.FillDate(df=df)
+        # df = self.FillDate(df=df)
         unix = df[self.dateFeature].to_frame().with_columns(pl.col(self.dateFeature).cast(pl.Utf8).alias('unix_str'))
         unix_time = [time.mktime(parse(t).timetuple()) for t in unix['unix_str'].to_list()]
         df = df.with_columns(pl.lit(unix_time).alias('unix_time'))
@@ -210,27 +290,25 @@ class DatasetController():
         return df
 
     def CyclicalPattern(self):
-        assert self.dateFeature is not None
-        if self.segmentFeature:
-            if self.dateFeature: self.df = self.df.sort(by=[self.segmentFeature, self.dateFeature])
-            else: self.df = self.df.sort(by=[self.segmentFeature])
+        # assert self.dateFeature is not None
+        # if self.segmentFeature:
+        #     if self.dateFeature: self.df = self.df.sort(by=[self.segmentFeature, self.dateFeature])
+        #     else: self.df = self.df.sort(by=[self.segmentFeature])
         
-        if self.segmentFeature:
-            dfs = None
-            for ele in self.df[self.segmentFeature].unique():
-                df = self.df.filter(pl.col(self.segmentFeature) == ele).clone()
-                df = self.TimeEncoder(df=df)
-                if dfs is None: dfs = df
-                else: dfs = pl.concat([dfs, df])
-            self.df = dfs.drop_nulls()
-            self.trainFeatures = list(set(self.trainFeatures))
-        else: 
-            self.df = self.TimeEncoder(df=self.df).drop_nulls()
+        # if self.segmentFeature:
+        #     dfs = None
+        #     for ele in self.df[self.segmentFeature].unique():
+        #         df = self.df.filter(pl.col(self.segmentFeature) == ele).clone()
+        #         df = self.TimeEncoder(df=df)
+        #         if dfs is None: dfs = df
+        #         else: dfs = pl.concat([dfs, df])
+        #     self.df = dfs.drop_nulls()
+        # else: 
+        #     self.df = self.TimeEncoder(df=self.df).drop_nulls()
+        self.df = self.TimeEncoder(df=self.df)
 
     def FillDate(self, df=None, low=None, high=None, granularity=None): 
-        # TODO: cut date
         if not self.dateFeature: return
-        # if df.is_empty(): df=self.df
         if not low: low=self.df[self.dateFeature].min()
         if not high: high=self.df[self.dateFeature].max()
         if not granularity: granularity=self.granularity
@@ -243,6 +321,7 @@ class DatasetController():
         df = df.join(other=d, 
                      on=self.dateFeature, 
                      how='outer')
+        df = self.StripDataset(df=df)
         return df
 
     def TimeBasedCrossValidation(self, args):

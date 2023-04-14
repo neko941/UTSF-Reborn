@@ -36,7 +36,9 @@ def main(opt):
     opt = update_opt(opt)
 
     """ Fixed config for testing """
+    # opt.ExtremeGradientBoostingRegression = True
     opt.BiLSTM__Tensorflow = True
+    opt.machineFilling = 'XGBoost'
     # opt.dataConfigs = r'.\configs\datasets\salinity-615_csv-lag5-ahead1-offset1.yaml'
     # opt.granularity = None
     # opt.startTimeId = None
@@ -45,13 +47,13 @@ def main(opt):
     # opt.granularity = 1440
     # opt.startTimeId = 0
 
-    opt.dataConfigs = r'.\configs\datasets\salinity-4_ids-split_column.yaml'
-    opt.granularity = 1440
-    opt.startTimeId = 0
+    # opt.dataConfigs = r'.\configs\datasets\salinity-4_ids-split_column.yaml'
+    # opt.granularity = 1440
+    # opt.startTimeId = 0
 
-    # opt.dataConfigs= r'.\configs\datasets\traffic-1_id-split_column.yaml'
-    # opt.granularity = 5 
-    # opt.startTimeId = 240
+    opt.dataConfigs= r'.\configs\datasets\traffic-1_id-split_column.yaml'
+    opt.granularity = 5 
+    opt.startTimeId = 240
 
     # path = r'.\configs\datasets\weather_history-0_id-no_split_column.yaml'
     # granularity = 60
@@ -72,7 +74,8 @@ def main(opt):
                                 ahead=opt.ahead, 
                                 offset=opt.offset,
                                 savePath=save_dir,
-                                filling=opt.filling).execute(cyclicalPattern=opt.cyclicalPattern)
+                                polarsFilling=opt.polarsFilling,
+                                machineFilling=opt.machineFilling).execute(cyclicalPattern=opt.cyclicalPattern)
     X_train, y_train, X_val, y_val, X_test, y_test = dataset.GetData(shuffle=shuffle)
 
     for item in model_dict:
@@ -106,10 +109,10 @@ def train(model, modelConfigs, data, save_dir, ahead,
                   modelConfigs=modelConfigs, 
                   output_shape=ahead, 
                   seed=seed,
-                  normalize_layer=None)
+                  normalize_layer=None,
+                  save_dir=save_dir)
     model.build()
     model.fit(patience=patience, 
-              save_dir=save_dir, 
               optimizer=optimizer, 
               loss=loss, 
               epochs=epochs, 
@@ -117,7 +120,7 @@ def train(model, modelConfigs, data, save_dir, ahead,
               batchsz=batchsz,
               X_train=data[0][0], y_train=data[0][1],
               X_val=data[1][0], y_val=data[1][1])
-    model.save(save_dir=save_dir, file_name=f'{model.__class__.__name__}')
+    model.save(file_name=f'{model.__class__.__name__}')
     yhat = model.predict(X=data[2][0])
     ytrainhat = model.predict(X=data[0][0])
     yvalhat = model.predict(X=data[1][0])
