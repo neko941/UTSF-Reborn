@@ -40,8 +40,10 @@ from pathlib import Path
 # import torch.nn as nn
 
 class BaseModel:
-    def __init__(self, modelConfigs, save_dir=None):
+    def __init__(self, modelConfigs, save_dir='.'):
         self.history = None
+        self.time_used = '0s'
+        self.model = None
         self.modelConfigs = yaml_load(modelConfigs)
 
         self.dir_log          = 'logs'
@@ -50,7 +52,7 @@ class BaseModel:
         self.dir_model        = 'models'
         self.dir_weight       = 'weights'
         self.dir_architecture = 'architectures'
-        if save_dir: self.mkdirs(path=save_dir)
+        self.mkdirs(path=save_dir)
 
     def mkdirs(self, path):
         self.path_log          = os.path.join(path, self.dir_log)
@@ -133,8 +135,7 @@ class MachineLearningModel(BaseModel):
         self.model = pickle.load(open(weight, "rb"))
 
     def predict(self, X):
-        return self.model.predict(self.preprocessing(x=X))
-
+        return self.model.predict(self.preprocessing(x=X)) 
 
 class TensorflowModel(BaseModel):
     def __init__(self, modelConfigs, input_shape, output_shape, save_dir, normalize_layer=None, seed=941, **kwargs):
@@ -234,3 +235,23 @@ class TensorflowModel(BaseModel):
     
     def load(self, weight):
         if os.path.exists(weight): self.model.load_weights(weight)
+
+
+class LTSF_Linear_Base(TensorflowModel):
+    def __init__(self, modelConfigs, input_shape, output_shape, save_dir, enc_in=1, seed=941, **kwargs):
+        super().__init__(modelConfigs=modelConfigs, 
+                         input_shape=input_shape, 
+                         output_shape=output_shape,
+                         save_dir=save_dir,
+                         normalize_layer=None,
+                         seed=seed)
+        self.individual = self.modelConfigs['individual']
+        self.enc_in = enc_in
+
+    def save(self, file_name:str):
+        file_path = os.path.join(self.path_weight, file_name, "ckpt")
+        self.model.save_weights(Path(file_path).absolute())
+        return file_path
+
+    def callbacks(self, patience, min_delta=0.001, extension=''):
+        return super().callbacks(patience=patience, min_delta=min_delta, extension="ckpt")

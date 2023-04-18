@@ -357,8 +357,9 @@ class DatasetController():
         if self.segmentFeature:
             # if self.workers != 1: 
             data = []
+            u = self.df[self.segmentFeature].unique()
             with self.ProgressBar() as progress:
-                for ele in progress.track(self.df[self.segmentFeature].unique(), description='Splitting jobs'):
+                for ele in progress.track(u, description='Splitting jobs'):
                     d = self.df.filter(pl.col(self.segmentFeature) == ele).clone()
                     d = self.FillDate(df=d)
                     d.drop_in_place(self.dateFeature) 
@@ -367,7 +368,7 @@ class DatasetController():
             with self.ProgressBar() as progress:
                 task_id = progress.add_task("Splitting data", total=len(data))
                 with ThreadPool(self.workers) as p:
-                    for result in p.imap(self.TimeBasedCrossValidation, data):
+                    for idx, result in enumerate(p.imap(self.TimeBasedCrossValidation, data)):
                         x = result[0]
                         y = result[1]
                         if multimodels:
@@ -385,7 +386,7 @@ class DatasetController():
                             self.X_test.extend(x[2])
                             self.y_test.extend(y[2])
                         
-                        self.num_samples.append({'id' : ele,
+                        self.num_samples.append({'id' : u[idx],
                                                 'train': len(y[0]),
                                                 'val': len(y[1]),
                                                 'test': len(y[2])})

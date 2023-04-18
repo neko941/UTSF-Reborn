@@ -3,27 +3,48 @@ import argparse
 from models.MachineLearning import ExtremeGradientBoostingRegression
 
 from models.LSTM import BiLSTM__Tensorflow
+from models.LTSF_Linear import LTSF_Linear__Tensorflow
+from models.LTSF_Linear import LTSF_NLinear__Tensorflow
+from models.LTSF_Linear import LTSF_DLinear__Tensorflow
 from models.Transformer import VanillaTransformer__Tensorflow
 
 model_dict = [
     { 
-     'model'  : ExtremeGradientBoostingRegression,
-     'help'   : '',
-     'type'   : 'MachineLearning',
-     'config' : r'.\configs\models\MachineLearning\ExtremeGradientBoostingRegression.yaml',
-     'alias'  : ['XGBoost']
+        'model'  : ExtremeGradientBoostingRegression,
+        'help'   : '',
+        'type'   : 'MachineLearning',
+        'config' : r'.\configs\models\MachineLearning\ExtremeGradientBoostingRegression.yaml',
+        'alias'  : ['XGBoost']
     },{ 
-     'model'  : BiLSTM__Tensorflow,
-     'help'   : '',
-     'type'   : 'Tensorflow',
-     'config' : r'.\configs\models\DeepLearning\BiLSTM__Tensorflow.yaml',
-     'alias'  : []
+        'model'  : BiLSTM__Tensorflow,
+        'help'   : '',
+        'type'   : 'Tensorflow',
+        'config' : r'.\configs\models\DeepLearning\BiLSTM__Tensorflow.yaml',
+        'alias'  : []
     },{
-     'model'  : VanillaTransformer__Tensorflow,
-     'help'   : '',
-     'type'   : 'Tensorflow',
-     'config' : r'.\configs\models\DeepLearning\VanillaTransformer__Tensorflow.yaml',
-     'alias'  : []
+        'model'  : LTSF_Linear__Tensorflow,
+        'help'   : '',
+        'type'   : 'Tensorflow',
+        'config' : r'.\configs\models\DeepLearning\LTSF_Linear__Tensorflow.yaml',
+        'alias'  : []
+    },{
+        'model'  : LTSF_NLinear__Tensorflow,
+        'help'   : '',
+        'type'   : 'Tensorflow',
+        'config' : r'.\configs\models\DeepLearning\LTSF_NLinear__Tensorflow.yaml',
+        'alias'  : []
+    },{
+        'model'  : LTSF_DLinear__Tensorflow,
+        'help'   : '',
+        'type'   : 'Tensorflow',
+        'config' : r'.\configs\models\DeepLearning\LTSF_DLinear__Tensorflow.yaml',
+        'alias'  : []
+    },{
+        'model'  : VanillaTransformer__Tensorflow,
+        'help'   : '',
+        'type'   : 'Tensorflow',
+        'config' : r'.\configs\models\DeepLearning\VanillaTransformer__Tensorflow.yaml',
+        'alias'  : []
     }
 ]
 

@@ -37,8 +37,10 @@ def main(opt):
 
     """ Fixed config for testing """
     # opt.ExtremeGradientBoostingRegression = True
-    opt.BiLSTM__Tensorflow = True
-    opt.machineFilling = 'XGBoost'
+    opt.LTSF_NLinear__Tensorflow = True
+    # opt.BiLSTM__Tensorflow = True
+    # opt.machineFilling = 'XGBoost'
+    
     # opt.dataConfigs = r'.\configs\datasets\salinity-615_csv-lag5-ahead1-offset1.yaml'
     # opt.granularity = None
     # opt.startTimeId = None
@@ -93,7 +95,8 @@ def main(opt):
               optimizer=opt.optimizer, 
               loss=opt.loss,
               batchsz=opt.batchsz,
-              r=opt.round)
+              r=opt.round,
+              enc_in=1)
 
 def train(model, modelConfigs, data, save_dir, ahead,
           seed=941, 
@@ -104,13 +107,15 @@ def train(model, modelConfigs, data, save_dir, ahead,
           optimizer='Adam', 
           loss='MSE',
           batchsz=64,
-          r=4):
+          r=4,
+          enc_in=1):
     model = model(input_shape=data[0][0].shape[-2:],
                   modelConfigs=modelConfigs, 
                   output_shape=ahead, 
                   seed=seed,
                   normalize_layer=None,
-                  save_dir=save_dir)
+                  save_dir=save_dir,
+                  enc_in=enc_in)
     model.build()
     model.fit(patience=patience, 
               optimizer=optimizer, 
