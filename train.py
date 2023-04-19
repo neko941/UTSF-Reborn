@@ -80,23 +80,27 @@ def main(opt):
                                 machineFilling=opt.machineFilling).execute(cyclicalPattern=opt.cyclicalPattern)
     X_train, y_train, X_val, y_val, X_test, y_test = dataset.GetData(shuffle=shuffle)
 
+    data = []
     for item in model_dict:
         if not vars(opt)[f'{item["model"].__name__}']: continue
-        train(model=item['model'], 
-              modelConfigs=item['config'], 
-              data=[[X_train, y_train], [X_val, y_val], [X_test, y_test]], 
-              save_dir=save_dir,
-              ahead=opt.ahead, 
-              seed=opt.seed, 
-              normalize_layer=None,
-              learning_rate=opt.lr,
-              epochs=opt.epochs, 
-              patience=opt.patience,
-              optimizer=opt.optimizer, 
-              loss=opt.loss,
-              batchsz=opt.batchsz,
-              r=opt.round,
-              enc_in=1)
+        datum = train(model=item['model'], 
+                      modelConfigs=item['config'], 
+                      data=[[X_train, y_train], [X_val, y_val], [X_test, y_test]], 
+                      save_dir=save_dir,
+                      ahead=opt.ahead, 
+                      seed=opt.seed, 
+                      normalize_layer=None,
+                      learning_rate=opt.lr,
+                      epochs=opt.epochs, 
+                      patience=opt.patience,
+                      optimizer=opt.optimizer, 
+                      loss=opt.loss,
+                      batchsz=opt.batchsz,
+                      r=opt.round,
+                      enc_in=1)
+        data.append(datum)
+    _ = [print(datum) for datum in data]
+
 
 def train(model, modelConfigs, data, save_dir, ahead,
           seed=941, 
@@ -133,8 +137,7 @@ def train(model, modelConfigs, data, save_dir, ahead,
                          yhat=yhat, 
                          r=r,
                          path=save_dir)
-    print(f'{scores = }')
-    print(f'{model.time_used = }')
+    
     model.plot(save_dir=save_dir,
                y=data[0][1], 
                yhat=ytrainhat,
@@ -147,6 +150,8 @@ def train(model, modelConfigs, data, save_dir, ahead,
                y=data[2][1], 
                yhat=yhat,
                dataset='Test')
+
+    return [model.__class__.__name__, model.time_used, *scores]
 
 def run(**kwargs):
     """ 
