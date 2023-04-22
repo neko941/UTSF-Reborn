@@ -1,0 +1,30 @@
+data: 
+	- .\data\traffic\raw\a_year-by_id\23599.csv
+	- .\data\traffic\raw\a_year-by_id\23998.csv
+	- .\data\traffic\raw\a_year-by_id\16090.csv
+	- .\data\traffic\raw\a_year-by_id\23143.csv
+	- .\data\traffic\raw\a_year-by_id\21013.csv
+	- .\data\traffic\raw\a_year-by_id\16092.csv
+	- .\data\traffic\raw\a_year-by_id\16099.csv
+	- .\data\traffic\raw\a_year-by_id\21700.csv
+	- .\data\traffic\raw\a_year-by_id\23883.csv
+	- .\data\traffic\raw\a_year-by_id\23940.csv
+target: speed
+date: date
+time_id: time_id
+features: current_geopath_id
+delimiter: "|"
+split_feature: current_geopath_id # or None
+dir_as_feature: 0
+split_dir_feature: 0
+
+year_start:
+year_end:
+month_start:
+month_end:
+day_start:
+day_end:
+hour_start: 4
+hour_end: 23
+minute_start:
+minute_end:

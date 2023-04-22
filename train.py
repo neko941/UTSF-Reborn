@@ -22,6 +22,15 @@ from utils.option import parse_opt
 from utils.option import update_opt
 from utils.option import model_dict
 
+from utils.metrics import metric_dict
+from utils.rich2polars import table_to_df
+from utils.activations import get_custom_activations
+
+from rich import box as rbox
+from rich.table import Table
+from rich.console import Console
+from rich.terminal_theme import MONOKAI
+
 def main(opt):
     """ Get the save directory for this run """
     save_dir = str(increment_path(Path(opt.project) / opt.name, overwrite=opt.overwrite, mkdir=True))
@@ -35,9 +44,11 @@ def main(opt):
     """ Update options """
     opt = update_opt(opt)
 
+    get_custom_activations()
+
     """ Fixed config for testing """
     # opt.ExtremeGradientBoostingRegression = True
-    opt.LTSF_NLinear__Tensorflow = True
+    # opt.LTSF_NLinear__Tensorflow = True
     # opt.BiLSTM__Tensorflow = True
     # opt.machineFilling = 'XGBoost'
     
@@ -53,9 +64,9 @@ def main(opt):
     # opt.granularity = 1440
     # opt.startTimeId = 0
 
-    opt.dataConfigs= r'.\configs\datasets\traffic-1_id-split_column.yaml'
-    opt.granularity = 5 
-    opt.startTimeId = 240
+    # opt.dataConfigs= r'.\configs\datasets\traffic-1_id-split_column.yaml'
+    # opt.granularity = 5 
+    # opt.startTimeId = 240
 
     # path = r'.\configs\datasets\weather_history-0_id-no_split_column.yaml'
     # granularity = 60
@@ -80,7 +91,16 @@ def main(opt):
                                 machineFilling=opt.machineFilling).execute(cyclicalPattern=opt.cyclicalPattern)
     X_train, y_train, X_val, y_val, X_test, y_test = dataset.GetData(shuffle=shuffle)
 
-    data = []
+    """ Create result table """
+    console = Console(record=True)
+    table = Table(title="[cyan]Results", 
+                  show_header=True, 
+                  header_style="bold magenta",
+                  box=rbox.ROUNDED,
+                  show_lines=True)
+    [table.add_column(f'[green]{name}', justify='center') for name in ['Name', 'Time', *list(metric_dict.keys())]]
+
+    """ Train models """
     for item in model_dict:
         if not vars(opt)[f'{item["model"].__name__}']: continue
         datum = train(model=item['model'], 
@@ -98,21 +118,22 @@ def main(opt):
                       batchsz=opt.batchsz,
                       r=opt.round,
                       enc_in=1)
-        data.append(datum)
-    _ = [print(datum) for datum in data]
-
+        table.add_row(*datum)
+        console.print(table)
+        console.save_svg(os.path.join(save_dir, 'results.svg'), theme=MONOKAI)  
+    table_to_df(table).write_csv(os.path.join(save_dir, 'results.csv'))
 
 def train(model, modelConfigs, data, save_dir, ahead,
-          seed=941, 
+          seed: int = 941, 
           normalize_layer=None,
-          learning_rate=1e-3,
-          epochs=10_000_000, 
-          patience=1_000,
-          optimizer='Adam', 
-          loss='MSE',
-          batchsz=64,
-          r=4,
-          enc_in=1):
+          learning_rate: float = 1e-3,
+          epochs: int = 10_000_000, 
+          patience: int = 1_000,
+          optimizer:str = 'Adam', 
+          loss:str = 'MSE',
+          batchsz:int = 64,
+          r: int = 4,
+          enc_in: int = 1) -> list:
     model = model(input_shape=data[0][0].shape[-2:],
                   modelConfigs=modelConfigs, 
                   output_shape=ahead, 

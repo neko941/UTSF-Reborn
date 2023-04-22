@@ -3,8 +3,8 @@ from tensorflow import keras
 from tensorflow.keras import layers
 
 class VanillaTransformer__Tensorflow(TensorflowModel):
-    def __init__(self, modelConfigs, input_shape, output_shape, normalize_layer=None, seed=941, **kwargs):
-        super().__init__(modelConfigs=modelConfigs, input_shape=input_shape, output_shape=output_shape, normalize_layer=normalize_layer, seed=seed)
+    def __init__(self, modelConfigs, input_shape, output_shape, save_dir, normalize_layer=None, seed=941, **kwargs):
+        super().__init__(modelConfigs=modelConfigs, input_shape=input_shape, output_shape=output_shape, normalize_layer=normalize_layer, seed=seed, save_dir=save_dir)
         self.head_size = self.modelConfigs['head_size']
         self.num_heads = self.modelConfigs['num_heads']
         self.ff_dim = self.modelConfigs['ff_dim']
