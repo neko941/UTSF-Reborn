@@ -38,13 +38,14 @@ def main(opt):
     """ Set seed """
     opt.seed = set_seed(opt.seed)
 
+    """ Add custom function """
+    get_custom_activations()
+
     """ Save init options """
     yaml_save(os.path.join(save_dir, 'opt.yaml'), vars(opt))
 
     """ Update options """
     opt = update_opt(opt)
-
-    get_custom_activations()
 
     """ Fixed config for testing """
     # opt.ExtremeGradientBoostingRegression = True
@@ -93,11 +94,7 @@ def main(opt):
 
     """ Create result table """
     console = Console(record=True)
-    table = Table(title="[cyan]Results", 
-                  show_header=True, 
-                  header_style="bold magenta",
-                  box=rbox.ROUNDED,
-                  show_lines=True)
+    table = Table(title="[cyan]Results", show_header=True, header_style="bold magenta", box=rbox.ROUNDED, show_lines=True)
     [table.add_column(f'[green]{name}', justify='center') for name in ['Name', 'Time', *list(metric_dict.keys())]]
 
     """ Train models """
@@ -151,26 +148,19 @@ def train(model, modelConfigs, data, save_dir, ahead,
               X_train=data[0][0], y_train=data[0][1],
               X_val=data[1][0], y_val=data[1][1])
     model.save(file_name=f'{model.__class__.__name__}')
+    
+    # predict values
     yhat = model.predict(X=data[2][0])
     ytrainhat = model.predict(X=data[0][0])
     yvalhat = model.predict(X=data[1][0])
-    scores = model.score(y=data[2][1], 
-                         yhat=yhat, 
-                         r=r,
-                         path=save_dir)
-    
-    model.plot(save_dir=save_dir,
-               y=data[0][1], 
-               yhat=ytrainhat,
-               dataset='Train')
-    model.plot(save_dir=save_dir,
-               y=data[1][1], 
-               yhat=yvalhat,
-               dataset='Val')
-    model.plot(save_dir=save_dir,
-               y=data[2][1], 
-               yhat=yhat,
-               dataset='Test')
+
+    # calculate scores
+    scores = model.score(y=data[2][1], yhat=yhat, r=r, path=save_dir)
+
+    # plot values
+    model.plot(save_dir=save_dir, y=data[0][1], yhat=ytrainhat, dataset='Train')
+    model.plot(save_dir=save_dir, y=data[1][1], yhat=yvalhat, dataset='Val')
+    model.plot(save_dir=save_dir, y=data[2][1], yhat=yhat, dataset='Test')
 
     return [model.__class__.__name__, model.time_used, *scores]
 

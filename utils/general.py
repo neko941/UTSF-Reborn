@@ -19,7 +19,7 @@ def flatten_list(alist):
         else: flattened_list.append(element)
     return flattened_list
 
-def list_convert(alist):
+def list_convert(alist) -> list:
     if alist is None: alist = []
     elif not isinstance(alist, list): alist = [alist]
     return alist
@@ -33,7 +33,7 @@ def yaml_save(file='opt.yaml', data={}):
     with open(file, 'w') as f:
         yaml.safe_dump({k: str(v) if isinstance(v, Path) else v for k, v in data.items()}, f, sort_keys=False)
 
-def increment_path(path, overwrite=False, sep='', mkdir=False):
+def increment_path(path, overwrite: bool = False, sep: str = '', mkdir: bool = False):
     path = Path(path).absolute()
     if path.exists():
         path, suffix = (path.with_suffix(''), path.suffix) if path.is_file() else (path, '')
@@ -51,7 +51,7 @@ def increment_path(path, overwrite=False, sep='', mkdir=False):
 
     return path
 
-def convert_seconds(seconds):
+def convert_seconds(seconds: int) -> str:
     hours = int(seconds // 3600)
     minutes = int((seconds % 3600) // 60)
     seconds = round(seconds % 60)
