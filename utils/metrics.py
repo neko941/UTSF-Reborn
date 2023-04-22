@@ -36,9 +36,6 @@ metric_dict = {
     'R2' : R2
 }
 
-def used_metric():
-    return metric_dict.keys()
-
 def score(y, yhat, r, path=None, model=''):
     if len(yhat.shape) == 3: 
         nsamples, nx, ny = yhat.shape
