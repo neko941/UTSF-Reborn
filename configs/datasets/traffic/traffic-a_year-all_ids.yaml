@@ -1,0 +1,22 @@
+data: .\data\traffic\raw\a_year
+target: speed
+date: date
+features: current_geopath_id
+time_id: time_id
+start_time_id: 240
+delimiter: "|"
+split_feature: current_geopath_id
+dir_as_feature: 0
+split_dir_feature: 0
+time_format: 
+
+year_start:
+year_end:
+month_start:
+month_end:
+day_start:
+day_end:
+hour_start:
+hour_end:
+minute_start:
+minute_end:

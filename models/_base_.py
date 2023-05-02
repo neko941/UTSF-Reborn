@@ -13,8 +13,8 @@ from keras.optimizers import RMSprop
 from keras.optimizers import Adagrad
 from keras.optimizers import Adamax
 from keras.optimizers import Adadelta
-from tensorflow.keras.optimizers import AdamW
-from tensorflow.keras.optimizers import Adafactor
+# from tensorflow.keras.optimizers import AdamW
+# from tensorflow.keras.optimizers import Adafactor
 
 from keras.callbacks import CSVLogger
 from keras.callbacks import EarlyStopping
@@ -144,10 +144,10 @@ class TensorflowModel(BaseModel):
             'MSE'       : MeanSquaredError,
             'Adam'      : Adam,
             'SGD'       : SGD,
-            'AdamW'     : AdamW,
+            # 'AdamW'     : AdamW,
             'Nadam'     : Nadam,
             'RMSprop'   : RMSprop,
-            'Adafactor' : Adafactor,
+            # 'Adafactor' : Adafactor,
             'Adadelta'  : Adadelta,
             'Adagrad'   : Adagrad,
             'Adamax'    : Adamax,
@@ -162,12 +162,21 @@ class TensorflowModel(BaseModel):
         self.output_shape    = output_shape
         
     def callbacks(self, patience, min_delta=0.001, extension='.h5'):
+        if extension != '.h5':
+            best = Path(self.path_weight, self.__class__.__name__, 'best')
+            last = Path(self.path_weight, self.__class__.__name__, 'last')
+        else:
+            best = Path(self.path_weight, self.__class__.__name__)
+            last = best
+        best.mkdir(parents=True, exist_ok=True)
+        last.mkdir(parents=True, exist_ok=True)
+
         return [EarlyStopping(monitor='val_loss', patience=patience, min_delta=min_delta), 
-                ModelCheckpoint(filepath=os.path.join(self.path_weight, f"{self.__class__.__name__}_best{extension}"),
+                ModelCheckpoint(filepath=os.path.join(best, f"{self.__class__.__name__}_best{extension}"),
                                 save_best_only=True,
                                 save_weights_only=True,
                                 verbose=0), 
-                ModelCheckpoint(filepath=os.path.join(self.path_weight, f"{self.__class__.__name__}_last{extension}"),
+                ModelCheckpoint(filepath=os.path.join(last, f"{self.__class__.__name__}_last{extension}"),
                                 save_best_only=False,
                                 save_weights_only=True,
                                 verbose=0),
@@ -228,7 +237,7 @@ class TensorflowModel(BaseModel):
         return self.model.predict(X, verbose=0)
     
     def save(self, file_name:str, extension:str='.h5'):
-        self.model.save_weights(os.path.join(self.path_weight, f'{file_name}{extension}'))
+        self.model.save_weights(Path(self.path_weight, file_name, f'{file_name}{extension}'))
         with open(os.path.join(self.path_architecture, f'{file_name}.json') , 'w') as outfile: json.dump(self.model.to_json(), outfile, indent=4)
         self.model.save(os.path.join(self.path_model, file_name))
         return os.path.join(self.path_weight, f'{file_name}{extension}')
@@ -251,7 +260,8 @@ class LTSF_Linear_Base(TensorflowModel):
     def save(self, file_name:str):
         file_path = os.path.join(self.path_weight, file_name, "ckpt")
         self.model.save_weights(Path(file_path).absolute())
+        # with open(os.path.join(self.path_architecture, f'{file_name}.json') , 'w') as outfile: json.dump(self.model.to_json(), outfile, indent=4)
         return file_path
 
     def callbacks(self, patience, min_delta=0.001, extension=''):
-        return super().callbacks(patience=patience, min_delta=min_delta, extension="ckpt")
+        return super().callbacks(patience=patience, min_delta=min_delta, extension="")

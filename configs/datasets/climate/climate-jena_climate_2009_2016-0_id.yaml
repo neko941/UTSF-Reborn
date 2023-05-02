@@ -1,0 +1,23 @@
+data: data/raw/climate/jena_climate_2009_2016-Temperature.csv
+target: T (degC)
+date: Date Time
+features: 
+time_id:
+start_time_id: 
+delimiter: ','
+split_feature: 
+dir_as_feature: 0
+split_dir_feature: 0
+granularity: 10
+time_format: '%d.%m.%Y %H:%M:%S'
+
+year_start:
+year_end:
+month_start:
+month_end:
+day_start:
+day_end:
+hour_start:
+hour_end:
+minute_start:
+minute_end:

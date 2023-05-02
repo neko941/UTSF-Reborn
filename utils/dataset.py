@@ -23,7 +23,18 @@ from rich.progress import MofNCompleteColumn
 from rich.progress import TimeRemainingColumn
 
 class DatasetController():
-    def __init__(self, configsPath=None, granularity=1, startTimeId=0, workers=8, splitRatio=(0.7, 0.2, 0.1), lag=3, ahead=1, offset=1, savePath='.', polarsFilling=None, machineFilling=None):
+    def __init__(self, 
+                 configsPath=None, 
+                 # granularity=1, 
+                 # startTimeId=0, 
+                 workers=8, 
+                 splitRatio=(0.7, 0.2, 0.1), 
+                 lag=5, 
+                 ahead=1, 
+                 offset=1, 
+                 savePath='.', 
+                 polarsFilling=None, 
+                 machineFilling=None):
         """ Read data config """
         self.dataConfigs = yaml_load(configsPath)
 
@@ -37,6 +48,9 @@ class DatasetController():
             self.dirAsFeature = self.dataConfigs['dir_as_feature']
             self.splitDirFeature = self.dataConfigs['split_dir_feature']
             self.splitFeature = self.dataConfigs['split_feature']
+            self.timeFormat = self.dataConfigs['time_format']
+            self.granularity = self.dataConfigs['granularity']
+            self.startTimeId = self.dataConfigs['start_time_id']
 
             self.yearStart   = self.dataConfigs['year_start']
             self.yearEnd     = self.dataConfigs['year_end']
@@ -65,8 +79,8 @@ class DatasetController():
 
         self.configsPath = configsPath
         self.workers = workers
-        self.granularity = granularity
-        self.startTimeId = startTimeId
+        # self.granularity = granularity
+        # self.startTimeId = startTimeId
         self.splitRatio = splitRatio
         self.lag = lag
         self.ahead = ahead
@@ -86,6 +100,7 @@ class DatasetController():
         if len(self.y_train) == 0:
             self.GetDataPaths(self.dataPaths)
             self.ReadFileAddFetures(csvs=self.dataFilePaths, dirAsFeature=self.dirAsFeature, hasHeader=True)
+            if self.timeFormat is not None: self.UpdateDateColumnDataType(dateFormat=self.timeFormat, f=pl.Datetime, t=pl.Datetime)
             self.TimeIDToDateTime(timeIDColumn=self.timeID, granularity=self.granularity, startTimeId=self.startTimeId)
             self.df = self.StripDataset(df=self.df)
             self.GetSegmentFeature(dirAsFeature=self.dirAsFeature, splitDirFeature=self.splitDirFeature, splitFeature=self.splitFeature)
@@ -257,8 +272,8 @@ class DatasetController():
         else: alist = [self.dateFeature, self.trainFeatures, self.targetFeatures] 
         return df[[col for i in alist for col in (i if isinstance(i, list) else [i])]]
 
-    def UpdateDateColumnDataType(self, dateFormat='%Y-%M-%d'):
-        self.df = self.df.with_columns(pl.col(self.dateFeature).str.strptime(pl.Date, fmt=dateFormat).cast(pl.Datetime))
+    def UpdateDateColumnDataType(self, f=pl.Datetime, t=pl.Datetime, dateFormat='%Y-%M-%d'):
+        self.df = self.df.with_columns(pl.col(self.dateFeature).str.strptime(f, fmt=dateFormat).cast(t))
 
     def GetSegmentFeature(self, dirAsFeature=0, splitDirFeature=0, splitFeature=None):
         if dirAsFeature != 0: self.dirAsFeature = dirAsFeature
@@ -325,15 +340,24 @@ class DatasetController():
         return df
 
     def TimeBasedCrossValidation(self, args):
-        d, lag, ahead, offset, splitRatio = args
+        d, lag, ahead, offset, splitRatio, progressBar = args
         features = []
         labels = []
-        for idx in range(len(d)-offset-lag+1):
-            feature = d[idx:idx+lag]
-            label = d[self.targetFeatures][idx+lag+offset-ahead:idx+lag+offset].to_frame()
-            if all(flatten_list(feature.with_columns(pl.all().is_not_null()).rows())) and all(flatten_list(label.with_columns(pl.all().is_not_null()).rows())): 
-                labels.append(np.squeeze(label.to_numpy()))
-                features.append(feature.to_numpy()) 
+        if not progressBar:
+            for idx in range(len(d)-offset-lag+1):
+                feature = d[idx:idx+lag]
+                label = d[self.targetFeatures][idx+lag+offset-ahead:idx+lag+offset].to_frame()
+                if all(flatten_list(feature.with_columns(pl.all().is_not_null()).rows())) and all(flatten_list(label.with_columns(pl.all().is_not_null()).rows())): 
+                    labels.append(np.squeeze(label.to_numpy()))
+                    features.append(feature.to_numpy()) 
+        else:
+            with self.ProgressBar() as progress:
+                for idx in progress.track(range(len(d)-offset-lag+1), description='Splitting data'):
+                    feature = d[idx:idx+lag]
+                    label = d[self.targetFeatures][idx+lag+offset-ahead:idx+lag+offset].to_frame()
+                    if all(flatten_list(feature.with_columns(pl.all().is_not_null()).rows())) and all(flatten_list(label.with_columns(pl.all().is_not_null()).rows())): 
+                        labels.append(np.squeeze(label.to_numpy()))
+                        features.append(feature.to_numpy()) 
 
         length = len(features)
         if splitRatio[1]==0 and splitRatio[2]==0: 
@@ -363,7 +387,7 @@ class DatasetController():
                     d = self.df.filter(pl.col(self.segmentFeature) == ele).clone()
                     d = self.FillDate(df=d)
                     d.drop_in_place(self.dateFeature) 
-                    data.append([d, lag, ahead, offset, splitRatio])
+                    data.append([d, lag, ahead, offset, splitRatio, False])
             
             with self.ProgressBar() as progress:
                 task_id = progress.add_task("Splitting data", total=len(data))
@@ -396,7 +420,7 @@ class DatasetController():
             d = self.FillDate(df=d)
             d.drop_in_place(self.dateFeature) 
             
-            x, y = self.TimeBasedCrossValidation(args=[d, lag, ahead, offset, splitRatio]) 
+            x, y = self.TimeBasedCrossValidation(args=[d, lag, ahead, offset, splitRatio, True]) 
             self.X_train.extend(x[0])
             self.y_train.extend(y[0])
             self.X_val.extend(x[1])

@@ -125,6 +125,10 @@ class NLinear__Tensorflow(tf.keras.Model):
         if self.pred_len==1: x = tf.squeeze(self.final_layer(x), axis=-1)
         return x # [Batch, Output length, Channel]
 
+    # def build(self, input_shape):
+    #     super(NLinear__Tensorflow, self).build(input_shape)
+
+
 class Linear__Tensorflow(tf.keras.Model):
     """
     Just one Linear layer
@@ -171,6 +175,9 @@ class LTSF_NLinear__Tensorflow(LTSF_Linear_Base):
                                          pred_len=self.output_shape, 
                                          enc_in=self.enc_in, 
                                          individual=self.individual)
+        # _ = self.model(tf.random.normal(shape=list(self.input_shape)))
+        # self.model.build(input_shape=self.input_shape)
+        # self.model.summary()
 
 class LTSF_DLinear__Tensorflow(LTSF_Linear_Base):
     def build(self):

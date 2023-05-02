@@ -16,7 +16,7 @@ def RMSE(y_true, y_pred):
 
 def MAPE(y_true, y_pred):
     """ Mean Absolute Percentage Error """
-    return np.mean(np.abs((y_true-y_pred) / y_true)) * 100
+    return np.mean(np.abs((y_true-y_pred) / (y_true + 1e-10))) * 100
 
 def SMAPE(y_true, y_pred):
     """ Symmetric Mean Absolute Percentage Error """

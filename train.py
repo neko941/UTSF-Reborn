@@ -80,8 +80,8 @@ def main(opt):
 
     """ Preprocessing dataset """
     dataset = DatasetController(configsPath=opt.dataConfigs,
-                                granularity=opt.granularity,
-                                startTimeId=opt.startTimeId,
+                                # granularity=opt.granularity,
+                                # startTimeId=opt.startTimeId,
                                 splitRatio=(opt.trainsz, opt.valsz, 1-opt.trainsz-opt.valsz),
                                 workers=opt.workers,
                                 lag=opt.lag, 
@@ -139,6 +139,8 @@ def train(model, modelConfigs, data, save_dir, ahead,
                   save_dir=save_dir,
                   enc_in=enc_in)
     model.build()
+    # model.model.built = True
+    # model.load('LTSF_Linear__Tensorflow_bestckpt.index')
     model.fit(patience=patience, 
               optimizer=optimizer, 
               loss=loss, 

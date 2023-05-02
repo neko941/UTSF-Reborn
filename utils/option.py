@@ -3,6 +3,7 @@ import argparse
 from models.MachineLearning import ExtremeGradientBoostingRegression
 
 from models.LSTM import BiLSTM__Tensorflow
+from models.LSTM import VanillaLSTM__Tensorflow
 from models.LTSF_Linear import LTSF_Linear__Tensorflow
 from models.LTSF_Linear import LTSF_NLinear__Tensorflow
 from models.LTSF_Linear import LTSF_DLinear__Tensorflow
@@ -15,6 +16,12 @@ model_dict = [
         'type'   : 'MachineLearning',
         'config' : r'.\configs\models\MachineLearning\ExtremeGradientBoostingRegression.yaml',
         'alias'  : ['XGBoost']
+    },{ 
+        'model'  : VanillaLSTM__Tensorflow,
+        'help'   : '',
+        'type'   : 'Tensorflow',
+        'config' : r'.\configs\models\DeepLearning\VanillaLSTM__Tensorflow.yaml',
+        'alias'  : []
     },{ 
         'model'  : BiLSTM__Tensorflow,
         'help'   : '',
@@ -59,8 +66,8 @@ def parse_opt(ROOT, known=False):
     parser.add_argument('--trainsz', type=float, default=0.7, help='')
     parser.add_argument('--valsz', type=float, default=0.2, help='')
 
-    parser.add_argument('--granularity', type=int, default=1, help='by minutes')
-    parser.add_argument('--startTimeId', type=int, default=0, help='by minutes')
+    # parser.add_argument('--granularity', type=int, default=1, help='by minutes')
+    # parser.add_argument('--startTimeId', type=int, default=0, help='by minutes')
 
     parser.add_argument('--dataConfigs', default='data.yaml', help='dataset')
     parser.add_argument('--patience', type=int, default=1000, help='EarlyStopping patience (epochs without improvement)')
@@ -115,5 +122,5 @@ def update_opt(opt):
 
     if opt.machineFilling: 
         opt.cyclicalPattern = False
-        opt.polarsFilling=None
+        opt.polarsFilling = None
     return opt

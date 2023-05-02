@@ -2,6 +2,7 @@ from keras import backend as K
 from keras.layers.core import Activation
 from keras.utils import get_custom_objects
 from keras.layers import Layer
+from abc import abstractmethod
 
 activation_dict = {
                     'xsinsquared': Activation(lambda x: x + (K.sin(x)) ** 2),
@@ -21,8 +22,24 @@ def SnakeActivation(x, alpha: float = 0.5):
 def _SoftRootSign(x, alpha: float = 5.0, beta:float = 3.0):
     return x / (x / alpha + K.exp(-x / beta))
 
+class TrainableActivationFunction(Layer):
+    def __init__(self, **kwargs):
+        super(TrainableActivationFunction, self).__init__(**kwargs)
+
+    @abstractmethod
+    def build(self, *inputs):
+        raise NotImplementedError 
+
+    @abstractmethod
+    def call(self, *inputs):
+        raise NotImplementedError 
+
+    @abstractmethod
+    def get_config(self, *inputs):
+        raise NotImplementedError 
+
 class SoftRootSign(Layer):
-    def __init__(self, alpha: float = 5.0, beta:float = 3.0, trainable=False, **kwargs):
+    def __init__(self, alpha: float = 5.0, beta:float = 3.0, trainable=True, **kwargs):
         super(SoftRootSign, self).__init__(**kwargs)
         self.alpha = alpha
         self.beta = beta
