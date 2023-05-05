@@ -1,4 +1,4 @@
-data: .\data\traffic\raw\a_year-by_id\23599.csv
+data: .\data\raw\traffic\a_year-by_id\23599.csv
 target: speed
 date: date
 time_id: time_id
@@ -9,6 +9,7 @@ split_feature: current_geopath_id # or None
 dir_as_feature: 0
 split_dir_feature: 0
 time_format: 
+granularity: 5
 
 year_start:
 year_end:

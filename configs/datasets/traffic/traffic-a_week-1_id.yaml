@@ -9,6 +9,7 @@ split_feature: current_geopath_id # or None
 dir_as_feature: 0
 split_dir_feature: 0
 time_format: 
+granularity: 5
 
 year_start:
 year_end:

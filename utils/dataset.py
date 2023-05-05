@@ -3,6 +3,7 @@ import json
 import time
 import numpy as np
 import polars as pl
+from pathlib import Path
 from datetime import timedelta
 from datetime import datetime
 from dateutil.parser import parse
@@ -107,7 +108,7 @@ class DatasetController():
             self.GetSegmentFeature(dirAsFeature=self.dirAsFeature, splitDirFeature=self.splitDirFeature, splitFeature=self.splitFeature)
             self.df = self.GetUsedColumn(df=self.df)
             if self.machineFilling: self.MachineLearningFillingMissingData(model=self.machineFilling)
-            if self.polarsFilling: self.PolarsFillingMissingData(strategy=self.polarsFilling)
+            if self.polarsFilling: self.PolarsFillingMissingData(strategy=self.polarsFilling, use_disk=True)
             if cyclicalPattern: self.CyclicalPattern()
             self.df = self.StripDataset(df=self.df)
 
@@ -185,25 +186,39 @@ class DatasetController():
                     else: continue  # only executed if the inner loop did NOT break
                     break  # only executed if the inner loop DID break
 
-    def PolarsFillingMissingData(self, strategy):
+    
+    def PolarsFillingMissingData(self, strategy, use_disk=False):
         self.SortDataset()
         if self.segmentFeature:
+            if use_disk:    
+                p = Path(self.savePath , "temp")
+                p.mkdir(parents=True, exist_ok=True)
+            else: dfs = None
             with self.ProgressBar() as progress:
-                dfs = None
                 for ele in progress.track(self.df[self.segmentFeature].unique(), description='  Filling data'):
                     df = self.df.filter(pl.col(self.segmentFeature) == ele).clone()
                     df = self.FillDate(df=df)
                     df = df.with_columns(pl.col(self.segmentFeature).fill_null(pl.lit(ele)))
                     for f in [feature for feature in [*self.trainFeatures, self.targetFeatures] if feature != self.segmentFeature]:
                         df = df.with_columns(pl.col(f).fill_null(strategy=strategy))
-                    if dfs is None: dfs = df
-                    else: dfs = pl.concat([dfs, df])
-                self.df = dfs
-        else: 
+                    if use_disk: df.write_csv(file=p / f'{ele}.csv', separator=self.delimiter)
+                    else:
+                        if dfs is None: dfs = df
+                        else: dfs = pl.concat([dfs, df])
+            if use_disk:
+                self.df = None
+                self.dataFilePaths = []
+                self.dataPaths = []
+                self.GetDataPaths(p)
+                self.ReadFileAddFetures(csvs=self.dataFilePaths, dirAsFeature=0, hasHeader=True)
+                # add self.df = self.df.shrink_to_fit()
+                # import shutil
+                #             shutil.rmtree(p)
+            else: self.df = dfs
+        else:    
             self.df = self.FillDate(df=self.df)
             for f in [feature for feature in [*self.trainFeatures, self.targetFeatures] if feature != self.segmentFeature]:
                 self.df = df.with_columns(pl.col(f).fill_null(strategy=strategy))
-            # self.df = self.TimeEncoder(df=self.df).drop_nulls()
 
     def GetData(self, shuffle):
         if shuffle:
@@ -255,6 +270,7 @@ class DatasetController():
                 for idx, f in enumerate(features): 
                     df = df.with_columns(pl.lit(f).alias(f'{newColumnName}{idx}'))
                 self.dirFeatures.append(f'{newColumnName}{idx}')
+                df = df.shrink_to_fit()
                 dfs.append(df)
             df = pl.concat(dfs)
             self.dirFeatures = list(set(self.dirFeatures))
