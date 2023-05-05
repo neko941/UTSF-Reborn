@@ -1,4 +1,4 @@
-data: .\data\traffic\raw\a_year
+data: .\data\raw\traffic\a_year
 target: speed
 date: date
 features: current_geopath_id
@@ -8,6 +8,7 @@ delimiter: "|"
 split_feature: current_geopath_id
 dir_as_feature: 0
 split_dir_feature: 0
+granularity: 5
 time_format: 
 
 year_start:

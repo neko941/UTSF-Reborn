@@ -1,14 +1,14 @@
 data: 
-	- .\data\traffic\raw\a_year-by_id\23599.csv
-	- .\data\traffic\raw\a_year-by_id\23998.csv
-	- .\data\traffic\raw\a_year-by_id\16090.csv
-	- .\data\traffic\raw\a_year-by_id\23143.csv
-	- .\data\traffic\raw\a_year-by_id\21013.csv
-	- .\data\traffic\raw\a_year-by_id\16092.csv
-	- .\data\traffic\raw\a_year-by_id\16099.csv
-	- .\data\traffic\raw\a_year-by_id\21700.csv
-	- .\data\traffic\raw\a_year-by_id\23883.csv
-	- .\data\traffic\raw\a_year-by_id\23940.csv
+	- .\data\raw\traffic\a_year-by_id\23599.csv
+	- .\data\raw\traffic\a_year-by_id\23998.csv
+	- .\data\raw\traffic\a_year-by_id\16090.csv
+	- .\data\raw\traffic\a_year-by_id\23143.csv
+	- .\data\raw\traffic\a_year-by_id\21013.csv
+	- .\data\raw\traffic\a_year-by_id\16092.csv
+	- .\data\raw\traffic\a_year-by_id\16099.csv
+	- .\data\raw\traffic\a_year-by_id\21700.csv
+	- .\data\raw\traffic\a_year-by_id\23883.csv
+	- .\data\raw\traffic\a_year-by_id\23940.csv
 target: speed
 date: date
 time_id: time_id

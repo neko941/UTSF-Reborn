@@ -5,7 +5,7 @@ booster: "gbtree"
 # default: 'gbtree'
 # options: 'gbtree', 'gblinear', 'dart'
 
-verbosity: 0
+verbosity: 2
 # description: verbosity of printing messages
 # default: 1
 # options: 0 (silent), 1 (warning), 2 (info), 3 (debug)

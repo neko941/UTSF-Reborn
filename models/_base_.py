@@ -143,7 +143,7 @@ class TensorflowModel(BaseModel):
         self.function_dict = {
             'MSE'       : MeanSquaredError,
             'Adam'      : Adam,
-            'SGD'       : SGD,
+            'SGD'       : lambda learning_rate: SGD(learning_rate=learning_rate, clipnorm=1.0),
             # 'AdamW'     : AdamW,
             'Nadam'     : Nadam,
             'RMSprop'   : RMSprop,

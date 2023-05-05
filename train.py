@@ -131,6 +131,9 @@ def train(model, modelConfigs, data, save_dir, ahead,
           batchsz:int = 64,
           r: int = 4,
           enc_in: int = 1) -> list:
+    # import tensorflow as tf
+    # model = tf.keras.models.load_model('VanillaLSTM__Tensorflow')
+    # model.summary()
     model = model(input_shape=data[0][0].shape[-2:],
                   modelConfigs=modelConfigs, 
                   output_shape=ahead, 
@@ -157,6 +160,7 @@ def train(model, modelConfigs, data, save_dir, ahead,
     yvalhat = model.predict(X=data[1][0])
 
     # calculate scores
+    print(data[2][1], yhat)
     scores = model.score(y=data[2][1], yhat=yhat, r=r, path=save_dir)
 
     # plot values

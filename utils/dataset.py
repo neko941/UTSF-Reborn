@@ -100,6 +100,7 @@ class DatasetController():
         if len(self.y_train) == 0:
             self.GetDataPaths(self.dataPaths)
             self.ReadFileAddFetures(csvs=self.dataFilePaths, dirAsFeature=self.dirAsFeature, hasHeader=True)
+            self.df = self.df.drop_nulls()
             if self.timeFormat is not None: self.UpdateDateColumnDataType(dateFormat=self.timeFormat, f=pl.Datetime, t=pl.Datetime)
             self.TimeIDToDateTime(timeIDColumn=self.timeID, granularity=self.granularity, startTimeId=self.startTimeId)
             self.df = self.StripDataset(df=self.df)
@@ -108,6 +109,12 @@ class DatasetController():
             if self.machineFilling: self.MachineLearningFillingMissingData(model=self.machineFilling)
             if self.polarsFilling: self.PolarsFillingMissingData(strategy=self.polarsFilling)
             if cyclicalPattern: self.CyclicalPattern()
+            self.df = self.StripDataset(df=self.df)
+
+            for i in range(10):
+                self.df = self.df.with_columns(pl.col(self.targetFeatures).alias(f'thecol{i}'))
+                self.trainFeatures.append(f'thecol{i}')
+
             self.SplittingData(splitRatio=self.splitRatio, lag=self.lag, ahead=self.ahead, offset=self.offset, multimodels=False)      
             self.SaveData(save_dir=self.savePath)
         return self
@@ -135,14 +142,15 @@ class DatasetController():
         self.SortDataset()
         self.df = self.df.with_columns(pl.col(self.dateFeature).cast(pl.Datetime))
         if self.segmentFeature:
-            dfs = None
-            for ele in self.df[self.segmentFeature].unique():
-                df = self.df.filter(pl.col(self.segmentFeature) == ele).clone()
-                df = self.FillDate(df=df)
-                df = df.with_columns(pl.col(self.segmentFeature).fill_null(pl.lit(ele)))
-                if dfs is None: dfs = df
-                else: dfs = pl.concat([dfs, df])
-            self.df = dfs
+            with self.ProgressBar() as progress:
+                dfs = None
+                for ele in progress.track(self.df[self.segmentFeature].unique(), description='  Filling data'):
+                    df = self.df.filter(pl.col(self.segmentFeature) == ele).clone()
+                    df = self.FillDate(df=df)
+                    df = df.with_columns(pl.col(self.segmentFeature).fill_null(pl.lit(ele)))
+                    if dfs is None: dfs = df
+                    else: dfs = pl.concat([dfs, df])
+                self.df = dfs
         else: 
             self.df = self.FillDate(df=self.df)
         self.CyclicalPattern()
@@ -180,16 +188,17 @@ class DatasetController():
     def PolarsFillingMissingData(self, strategy):
         self.SortDataset()
         if self.segmentFeature:
-            dfs = None
-            for ele in self.df[self.segmentFeature].unique():
-                df = self.df.filter(pl.col(self.segmentFeature) == ele).clone()
-                df = self.FillDate(df=df)
-                df = df.with_columns(pl.col(self.segmentFeature).fill_null(pl.lit(ele)))
-                for f in [feature for feature in [*self.trainFeatures, self.targetFeatures] if feature != self.segmentFeature]:
-                    df = df.with_columns(pl.col(f).fill_null(strategy=strategy))
-                if dfs is None: dfs = df
-                else: dfs = pl.concat([dfs, df])
-            self.df = dfs
+            with self.ProgressBar() as progress:
+                dfs = None
+                for ele in progress.track(self.df[self.segmentFeature].unique(), description='  Filling data'):
+                    df = self.df.filter(pl.col(self.segmentFeature) == ele).clone()
+                    df = self.FillDate(df=df)
+                    df = df.with_columns(pl.col(self.segmentFeature).fill_null(pl.lit(ele)))
+                    for f in [feature for feature in [*self.trainFeatures, self.targetFeatures] if feature != self.segmentFeature]:
+                        df = df.with_columns(pl.col(f).fill_null(strategy=strategy))
+                    if dfs is None: dfs = df
+                    else: dfs = pl.concat([dfs, df])
+                self.df = dfs
         else: 
             self.df = self.FillDate(df=self.df)
             for f in [feature for feature in [*self.trainFeatures, self.targetFeatures] if feature != self.segmentFeature]:
@@ -379,7 +388,6 @@ class DatasetController():
         if offset<ahead: offset=ahead
 
         if self.segmentFeature:
-            # if self.workers != 1: 
             data = []
             u = self.df[self.segmentFeature].unique()
             with self.ProgressBar() as progress:
