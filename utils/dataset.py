@@ -99,7 +99,7 @@ class DatasetController():
 
     def execute(self, cyclicalPattern=False):
         if len(self.y_train) == 0:
-            self.GetDataPaths(self.dataPaths)
+            self.GetDataPaths(dataPaths=self.dataPaths)
             self.ReadFileAddFetures(csvs=self.dataFilePaths, dirAsFeature=self.dirAsFeature, hasHeader=True)
             self.df = self.df.drop_nulls()
             if self.timeFormat is not None: self.UpdateDateColumnDataType(dateFormat=self.timeFormat, f=pl.Datetime, t=pl.Datetime)
@@ -112,10 +112,14 @@ class DatasetController():
             if cyclicalPattern: self.CyclicalPattern()
             self.df = self.StripDataset(df=self.df)
 
-            for i in range(10):
-                self.df = self.df.with_columns(pl.col(self.targetFeatures).alias(f'thecol{i}'))
-                self.trainFeatures.append(f'thecol{i}')
-
+            self.df = self.ReduceMemoryUsage(df=self.df, info=True)
+            print(f"Memory usage: {round(df.estimated_size('gb'), 2)} GB")
+            with self.ProgressBar() as progress:
+                for i in progress.track(range(10), description='Adding columns'):
+                    self.df = self.df.with_columns(pl.col(self.targetFeatures).alias(f'thecol{i}'))
+                    # self.df = self.df.shrink_to_fit()
+                    self.trainFeatures.append(f'thecol{i}')
+                    
             self.SplittingData(splitRatio=self.splitRatio, lag=self.lag, ahead=self.ahead, offset=self.offset, multimodels=False)      
             self.SaveData(save_dir=self.savePath)
         return self
@@ -210,7 +214,7 @@ class DatasetController():
                 self.dataFilePaths = []
                 self.dataPaths = []
                 self.GetDataPaths(p)
-                self.ReadFileAddFetures(csvs=self.dataFilePaths, dirAsFeature=0, hasHeader=True)
+                self.ReadFileAddFetures(csvs=self.dataFilePaths, dirAsFeature=0, hasHeader=True, description='ReReading data')
                 # add self.df = self.df.shrink_to_fit()
                 # import shutil
                 #             shutil.rmtree(p)
@@ -255,16 +259,46 @@ class DatasetController():
                         TextColumn("•Total"),
                         TimeElapsedColumn())
 
-    def ReadFileAddFetures(self, csvs=None, dirAsFeature=0, newColumnName='dir', hasHeader=True):
+    def ReduceMemoryUsage(self, df, info=False):
+        before = round(df.estimated_size('gb'), 4)
+        Numeric_Int_types = [pl.Int8,pl.Int16,pl.Int32,pl.Int64]
+        Numeric_Float_types = [pl.Float32,pl.Float64]    
+        for col in df.columns:
+            col_type = df[col].dtype
+            c_min = df[col].min()
+            c_max = df[col].max()
+            if col_type in Numeric_Int_types:
+                if c_min > np.iinfo(np.int8).min and c_max < np.iinfo(np.int8).max:
+                    df = df.with_columns(df[col].cast(pl.Int8))
+                elif c_min > np.iinfo(np.int16).min and c_max < np.iinfo(np.int16).max:
+                    df = df.with_columns(df[col].cast(pl.Int16))
+                elif c_min > np.iinfo(np.int32).min and c_max < np.iinfo(np.int32).max:
+                    df = df.with_columns(df[col].cast(pl.Int32))
+                elif c_min > np.iinfo(np.int64).min and c_max < np.iinfo(np.int64).max:
+                    df = df.with_columns(df[col].cast(pl.Int64))
+            elif col_type in Numeric_Float_types:
+                if c_min > np.finfo(np.float32).min and c_max < np.finfo(np.float32).max:
+                    df = df.with_columns(df[col].cast(pl.Float32))
+                else:
+                    pass
+            elif col_type == pl.Utf8:
+                df = df.with_columns(df[col].cast(pl.Categorical))
+            else:
+                pass
+        if info: print(f"Memory usage: {before} GB ⇒ {round(df.estimated_size('gb'), 4)} GB")
+        return df
+
+
+    def ReadFileAddFetures(self, csvs=None, dirAsFeature=0, newColumnName='dir', hasHeader=True, description='  Reading data'):
         if csvs: self.dataFilePaths = [os.path.abspath(csv) for csv in csvs]  
         if dirAsFeature != 0: self.dirAsFeature = dirAsFeature
 
         if self.dirAsFeature == 0:
             with self.ProgressBar() as progress:
-                df = pl.concat([pl.read_csv(source=csv, separator=self.delimiter, has_header=hasHeader, try_parse_dates=True) for csv in progress.track(self.dataFilePaths, description='  Reading data')])
+                df = pl.concat([pl.read_csv(source=csv, separator=self.delimiter, has_header=hasHeader, try_parse_dates=True, low_memory=True) for csv in progress.track(self.dataFilePaths, description=description)])
         else:
             dfs = []
-            for csv in track(self.dataFilePaths, description='  Reading data'):
+            for csv in track(self.dataFilePaths, description=description):
                 features = [int(p) if p.isdigit() else p for p in csv.split(os.sep)[-self.dirAsFeature-1:-1]]
                 df = pl.read_csv(source=csv, separator=self.delimiter, has_header=hasHeader, try_parse_dates=True)
                 for idx, f in enumerate(features): 
