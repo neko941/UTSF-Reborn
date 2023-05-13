@@ -138,7 +138,7 @@ class MachineLearningModel(BaseModel):
         return self.model.predict(self.preprocessing(x=X)) 
 
 class TensorflowModel(BaseModel):
-    def __init__(self, modelConfigs, input_shape, output_shape, save_dir, normalize_layer=None, seed=941, **kwargs):
+    def __init__(self, modelConfigs, input_shape, output_shape, save_dir, normalize_layer=None, seed=941, np_list=False, **kwargs):
         super().__init__(modelConfigs=modelConfigs, save_dir=save_dir)
         self.function_dict = {
             'MSE'       : MeanSquaredError,
@@ -160,6 +160,7 @@ class TensorflowModel(BaseModel):
         self.normalize_layer = normalize_layer
         self.input_shape     = input_shape
         self.output_shape    = output_shape
+        self.np_list = np_list
         
     def callbacks(self, patience, min_delta=0.001, extension='.h5'):
         if extension != '.h5':
@@ -199,7 +200,24 @@ class TensorflowModel(BaseModel):
                 CSVLogger(filename=os.path.join(self.path_log, f'{self.__class__.__name__}.csv'), separator=',', append=False)]  
         
     def preprocessing(self, x, y, batchsz):
-        return tf.data.Dataset.from_tensor_slices((x, y)).shuffle(buffer_size=5120, seed=self.seed, reshuffle_each_iteration=True).batch(batchsz).cache().prefetch(buffer_size=tf.data.AUTOTUNE)
+        buffer_size = 5120
+        if self.np_list:
+            data = tf.data.Dataset.from_tensor_slices(list(zip(x, y)))\
+                                  .map(lambda item: tf.numpy_function(lambda item: np.load(file=item.decode(), mmap_mode='r'), 
+                                                                      [item], 
+                                                                      tf.float32),
+                                       num_parallel_calls=tf.data.AUTOTUNE)\
+                                  .shuffle(buffer_size=buffer_size, seed=self.seed, reshuffle_each_iteration=True)\
+                                  .batch(batchsz)\
+                                  .cache()\
+                                  .prefetch(buffer_size=tf.data.AUTOTUNE)
+        else:
+            data = tf.data.Dataset.from_tensor_slices((x, y))\
+                                  .shuffle(buffer_size=buffer_size, seed=self.seed, reshuffle_each_iteration=True)\
+                                  .batch(batchsz)\
+                                  .cache()\
+                                  .prefetch(buffer_size=tf.data.AUTOTUNE)
+        return data
 
     def build(self):
         try:

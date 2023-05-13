@@ -26,7 +26,7 @@ def list_convert(alist) -> list:
 
 def yaml_load(file='data.yaml'):
     # Single-line safe yaml loading
-    return yaml.safe_load(open(file, errors='ignore'))
+    return yaml.safe_load(open(Path(file), errors='ignore'))
 
 def yaml_save(file='opt.yaml', data={}):
     # Single-line safe yaml saving

@@ -1,6 +1,8 @@
 import os
+import gc
 import json
 import time
+import random
 import numpy as np
 import polars as pl
 from pathlib import Path
@@ -98,6 +100,7 @@ class DatasetController():
         self.num_samples = []
 
     def execute(self, cyclicalPattern=False):
+        self.use_disk = False
         if len(self.y_train) == 0:
             self.GetDataPaths(dataPaths=self.dataPaths)
             self.ReadFileAddFetures(csvs=self.dataFilePaths, dirAsFeature=self.dirAsFeature, hasHeader=True)
@@ -108,20 +111,18 @@ class DatasetController():
             self.GetSegmentFeature(dirAsFeature=self.dirAsFeature, splitDirFeature=self.splitDirFeature, splitFeature=self.splitFeature)
             self.df = self.GetUsedColumn(df=self.df)
             if self.machineFilling: self.MachineLearningFillingMissingData(model=self.machineFilling)
-            if self.polarsFilling: self.PolarsFillingMissingData(strategy=self.polarsFilling, use_disk=True)
+            if self.polarsFilling: self.PolarsFillingMissingData(strategy=self.polarsFilling, use_disk=self.use_disk)
             if cyclicalPattern: self.CyclicalPattern()
             self.df = self.StripDataset(df=self.df)
 
-            self.df = self.ReduceMemoryUsage(df=self.df, info=True)
-            print(f"Memory usage: {round(df.estimated_size('gb'), 2)} GB")
-            with self.ProgressBar() as progress:
-                for i in progress.track(range(10), description='Adding columns'):
-                    self.df = self.df.with_columns(pl.col(self.targetFeatures).alias(f'thecol{i}'))
-                    # self.df = self.df.shrink_to_fit()
-                    self.trainFeatures.append(f'thecol{i}')
-                    
-            self.SplittingData(splitRatio=self.splitRatio, lag=self.lag, ahead=self.ahead, offset=self.offset, multimodels=False)      
-            self.SaveData(save_dir=self.savePath)
+            # self.df = self.ReduceMemoryUsage(df=self.df, info=True)
+            # with self.ProgressBar() as progress:
+            #     for i in progress.track(range(10), description='Adding columns'):
+            #         self.df = self.df.with_columns(pl.col(self.targetFeatures).alias(f'thecol{i}'))
+            #         # self.df = self.df.shrink_to_fit()
+            #         self.trainFeatures.append(f'thecol{i}')
+
+            self.SplittingData(splitRatio=self.splitRatio, lag=self.lag, ahead=self.ahead, offset=self.offset, multimodels=False, use_disk=self.use_disk)      
         return self
 
     def SortDataset(self):
@@ -189,7 +190,6 @@ class DatasetController():
                             break
                     else: continue  # only executed if the inner loop did NOT break
                     break  # only executed if the inner loop DID break
-
     
     def PolarsFillingMissingData(self, strategy, use_disk=False):
         self.SortDataset()
@@ -209,6 +209,7 @@ class DatasetController():
                     else:
                         if dfs is None: dfs = df
                         else: dfs = pl.concat([dfs, df])
+
             if use_disk:
                 self.df = None
                 self.dataFilePaths = []
@@ -225,13 +226,28 @@ class DatasetController():
                 self.df = df.with_columns(pl.col(f).fill_null(strategy=strategy))
 
     def GetData(self, shuffle):
-        if shuffle:
-            np.random.shuffle(self.X_train)
-            np.random.shuffle(self.y_train)
-            np.random.shuffle(self.X_val)
-            np.random.shuffle(self.y_val)
-            np.random.shuffle(self.X_test)
-            np.random.shuffle(self.y_test)
+        if self.use_disk:
+            if shuffle:
+                random.shuffle(self.xtr)
+                random.shuffle(self.ytr)
+                random.shuffle(self.xv)
+                random.shuffle(self.yv)
+                random.shuffle(self.xt)
+                random.shuffle(self.yt)
+            self.X_train = self.xtr
+            self.y_train = self.ytr
+            self.X_val = self.xv
+            self.y_val = self.yv
+            self.X_test = self.xt
+            self.y_test = self.yt
+        else:
+            if shuffle:
+                np.random.shuffle(self.X_train)
+                np.random.shuffle(self.y_train)
+                np.random.shuffle(self.X_val)
+                np.random.shuffle(self.y_val)
+                np.random.shuffle(self.X_test)
+                np.random.shuffle(self.y_test)
         return self.X_train, self.y_train, self.X_val, self.y_val, self.X_test, self.y_test
 
     def GetDataPaths(self, dataPaths=None, extensions=('.csv')):
@@ -285,7 +301,7 @@ class DatasetController():
                 df = df.with_columns(df[col].cast(pl.Categorical))
             else:
                 pass
-        if info: print(f"Memory usage: {before} GB ⇒ {round(df.estimated_size('gb'), 4)} GB")
+        if info: print(f"Memory usage: {before} GB => {round(df.estimated_size('gb'), 4)} GB")
         return df
 
 
@@ -409,6 +425,14 @@ class DatasetController():
                 if all(flatten_list(feature.with_columns(pl.all().is_not_null()).rows())) and all(flatten_list(label.with_columns(pl.all().is_not_null()).rows())): 
                     labels.append(np.squeeze(label.to_numpy()))
                     features.append(feature.to_numpy()) 
+                    # print(d[idx:idx+lag])
+                    # print(d[idx+lag+offset-ahead:idx+lag+offset])
+                    # print('==================================')
+
+            # for frame in d.iter_slices(n_rows=lag+offset):
+            #     print(frame[:lag])
+            #     print(frame[lag+offset-ahead:lag+offset])
+            # thething()
         else:
             with self.ProgressBar() as progress:
                 for idx in progress.track(range(len(d)-offset-lag+1), description='Splitting data'):
@@ -430,12 +454,27 @@ class DatasetController():
             val_end = int(length*(splitRatio[0] + splitRatio[1]))
         return [features[0:train_end], features[train_end:val_end], features[val_end:length]], [labels[0:train_end], labels[train_end:val_end], labels[val_end:length]]
 
-    def SplittingData(self, splitRatio, lag, ahead, offset, multimodels=False):
+    def SplittingData(self, splitRatio, lag, ahead, offset, multimodels=False, use_disk=False, save_dir=None):
+        if not save_dir: save_dir = self.savePath
+        save_dir = Path(save_dir) / 'values'
+        save_dir.mkdir(parents=True, exist_ok=True)
+
         if self.segmentFeature:
             if self.dateFeature: self.df = self.df.sort(by=[self.segmentFeature, self.dateFeature])
             else: self.df = self.df.sort(by=[self.segmentFeature])
         
         if offset<ahead: offset=ahead
+
+        if use_disk:
+            path = Path(self.savePath, "splitted")
+            xtr = path / 'xtrain'
+            xv  = path / 'xval'
+            xt  = path / 'xtest'
+            ytr = path / 'ytrain'
+            yv  = path / 'yval'
+            yt  = path / 'ytest'
+
+            for p in [path, xtr, xv, xt, ytr, yv, yt]: p.mkdir(parents=True, exist_ok=True)
 
         if self.segmentFeature:
             data = []
@@ -447,26 +486,38 @@ class DatasetController():
                     d.drop_in_place(self.dateFeature) 
                     data.append([d, lag, ahead, offset, splitRatio, False])
             
+            if self.df is not None: self.df.write_csv(save_dir / 'data_processed.csv')
+            del self.df
+            gc.collect()
+
             with self.ProgressBar() as progress:
                 task_id = progress.add_task("Splitting data", total=len(data))
                 with ThreadPool(self.workers) as p:
                     for idx, result in enumerate(p.imap(self.TimeBasedCrossValidation, data)):
                         x = result[0]
                         y = result[1]
-                        if multimodels:
-                            self.X_train.append(x[0])
-                            self.y_train.append(y[0])
-                            self.X_val.append(x[1])
-                            self.y_val.append(y[1])
-                            self.X_test.append(x[2])
-                            self.y_test.append(y[2])
+                        if use_disk:
+                            np.save(open(xtr / f'{u[idx]}.npy', 'wb'), x[0])
+                            np.save(open(ytr / f'{u[idx]}.npy', 'wb'), y[0])
+                            np.save(open(xv / f'{u[idx]}.npy', 'wb'), x[1])
+                            np.save(open(yv / f'{u[idx]}.npy', 'wb'), y[1])
+                            np.save(open(xt / f'{u[idx]}.npy', 'wb'), x[2])
+                            np.save(open(yt / f'{u[idx]}.npy', 'wb'), y[2])
                         else:
-                            self.X_train.extend(x[0])
-                            self.y_train.extend(y[0])
-                            self.X_val.extend(x[1])
-                            self.y_val.extend(y[1])
-                            self.X_test.extend(x[2])
-                            self.y_test.extend(y[2])
+                            if multimodels:
+                                self.X_train.append(x[0])
+                                self.y_train.append(y[0])
+                                self.X_val.append(x[1])
+                                self.y_val.append(y[1])
+                                self.X_test.append(x[2])
+                                self.y_test.append(y[2])
+                            else:
+                                self.X_train.extend(x[0])
+                                self.y_train.extend(y[0])
+                                self.X_val.extend(x[1])
+                                self.y_val.extend(y[1])
+                                self.X_test.extend(x[2])
+                                self.y_test.extend(y[2])
                         
                         self.num_samples.append({'id' : u[idx],
                                                 'train': len(y[0]),
@@ -474,7 +525,10 @@ class DatasetController():
                                                 'test': len(y[2])})
                         progress.advance(task_id)
         else:
+            if self.df is not None: self.df.write_csv(save_dir / 'data_processed.csv')
             d = self.df.clone()
+            del self.df
+            gc.collect()
             d = self.FillDate(df=d)
             d.drop_in_place(self.dateFeature) 
             
@@ -489,27 +543,74 @@ class DatasetController():
                                      'val': len(y[1]),
                                      'test': len(y[2])})
 
-        self.X_train = np.array(self.X_train)
-        self.y_train = np.array(self.y_train)
-        self.X_val = np.array(self.X_val)
-        self.y_val = np.array(self.y_val)
-        self.X_test = np.array(self.X_test)
-        self.y_test = np.array(self.y_test)
-    
-    def SaveData(self, save_dir=None):
-        if not save_dir: save_dir = self.save_dir
-        save_dir = os.path.join(save_dir, 'values')
-        os.makedirs(save_dir, exist_ok=True)
 
-        if self.df is not None: self.df.write_csv(os.path.join(save_dir, 'data_processed.csv'))
+        # save_dir = Path(r'E:\01.Code\00.Github\UTSF-Reborn\runs\exp191\values')
+        # xtr = Path(r'E:\01.Code\00.Github\UTSF-Reborn\runs\exp191\splitted\xtrain')
+        # ytr = Path(r'E:\01.Code\00.Github\UTSF-Reborn\runs\exp191\splitted\ytrain')
+        # xv = Path(r'E:\01.Code\00.Github\UTSF-Reborn\runs\exp191\splitted\xval')
+        # yv = Path(r'E:\01.Code\00.Github\UTSF-Reborn\runs\exp191\splitted\yval')
+        # xt = Path(r'E:\01.Code\00.Github\UTSF-Reborn\runs\exp191\splitted\xtest')
+        # yt = Path(r'E:\01.Code\00.Github\UTSF-Reborn\runs\exp191\splitted\ytest')
+        # self.num_samples = {'train': 1,
+        #                              'val': 2,
+        #                              'test': 3}
+
+        if use_disk:
+            self.xtr = [Path(xtr) / f for f in os.listdir(xtr) if f.endswith('.npy')]
+            self.ytr = [Path(ytr) / f for f in os.listdir(ytr) if f.endswith('.npy')]
+            self.xv = [Path(xv) / f for f in os.listdir(xv) if f.endswith('.npy')]
+            self.yv = [Path(yv) / f for f in os.listdir(yv) if f.endswith('.npy')]
+            self.xt = [Path(xt) / f for f in os.listdir(xt) if f.endswith('.npy')]
+            self.yt = [Path(yt) / f for f in os.listdir(yt) if f.endswith('.npy')]
+            # self.y_train = self.LoadNumpyDir(ytr)
+            # np.save(open(save_dir / 'y_train.npy', 'wb'), self.y_train)
+            # self.y_val = self.LoadNumpyDir(yv)
+            # np.save(open(save_dir / 'y_val.npy', 'wb'), self.y_val)
+            # self.y_test = self.LoadNumpyDir(yt)
+            # np.save(open(save_dir / 'y_test.npy', 'wb'), self.y_test)
+            # self.X_test = self.LoadNumpyDir(xt)
+            # np.save(open(save_dir / 'X_test.npy', 'wb'), self.X_test)
+            # self.X_val = self.LoadNumpyDir(xv)
+            # np.save(open(save_dir / 'X_val.npy', 'wb'), self.X_val)
+            # self.X_train = self.LoadNumpyDir(xtr)
+            # np.save(open(save_dir / 'X_train.npy', 'wb'), self.X_train)
+        else:
+            self.X_train = np.array(self.X_train)
+            self.y_train = np.array(self.y_train)
+            self.X_val = np.array(self.X_val)
+            self.y_val = np.array(self.y_val)
+            self.X_test = np.array(self.X_test)
+            self.y_test = np.array(self.y_test)
+
         if len(self.num_samples) != 0: 
-            with open(os.path.join(save_dir, "num_samples.json"), "w") as final: 
+            with open(save_dir / "num_samples.json", "w") as final: 
                 json.dump(self.num_samples, final, indent=4) 
-        np.save(open(os.path.join(save_dir, 'X_train.npy'), 'wb'), self.X_train)
-        np.save(open(os.path.join(save_dir, 'y_train.npy'), 'wb'), self.y_train)
-        np.save(open(os.path.join(save_dir, 'X_val.npy'), 'wb'), self.X_val)
-        np.save(open(os.path.join(save_dir, 'y_val.npy'), 'wb'), self.y_val)
-        np.save(open(os.path.join(save_dir, 'X_test.npy'), 'wb'), self.X_test)
-        np.save(open(os.path.join(save_dir, 'y_test.npy'), 'wb'), self.y_test)
+        
+        if len(self.X_train) != 0: np.save(open(save_dir / 'X_train.npy', 'wb'), self.X_train)
+        if len(self.y_train) != 0: np.save(open(save_dir / 'y_train.npy', 'wb'), self.y_train)
+        if len(self.X_val) != 0: np.save(open(save_dir / 'X_val.npy', 'wb'), self.X_val)
+        if len(self.y_val) != 0: np.save(open(save_dir / 'y_val.npy', 'wb'), self.y_val)
+        if len(self.X_test) != 0: np.save(open(save_dir / 'X_test.npy', 'wb'), self.X_test)
+        if len(self.y_test) != 0: np.save(open(save_dir / 'y_test.npy', 'wb'), self.y_test)
+    
+    def LoadNumpyDir(self, dir_path):
+        files = [Path(dir_path) / f for f in os.listdir(dir_path) if f.endswith('.npy')]
+        files.sort()
+
+        data = None
+        # with self.ProgressBar() as progress:
+        #     task_id = progress.add_task("  Reading data", total=len(files))
+        #     with ThreadPool(self.workers) as p:
+        #         for result in p.imap(lambda file: np.load(file=file, mmap_mode='r'), files):
+        #             if data is not None: data = np.concatenate([data, result], axis=0)
+        #             else: data = result
+        #             progress.advance(task_id)
+
+        with self.ProgressBar() as progress:
+            for f in progress.track(files, description='  Reading data'):
+                arr = np.load(file=f, mmap_mode='r')
+                if data is not None: data = np.concatenate((data, arr), axis=0)
+                else: data = arr
+        return data
 
     def display(self): pass

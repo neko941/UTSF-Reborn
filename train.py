@@ -10,6 +10,7 @@ ROOT = Path(os.path.relpath(ROOT, Path.cwd()))  # relative
 import absl.logging
 absl.logging.set_verbosity(absl.logging.ERROR) # disable absl INFO and WARNING log messages
 
+import numpy as np
 import matplotlib.pyplot as plt 
 from utils.dataset import DatasetController
 from utils.visualize import save_plot
@@ -91,6 +92,7 @@ def main(opt):
                                 polarsFilling=opt.polarsFilling,
                                 machineFilling=opt.machineFilling).execute(cyclicalPattern=opt.cyclicalPattern)
     X_train, y_train, X_val, y_val, X_test, y_test = dataset.GetData(shuffle=shuffle)
+    np_list = not isinstance(X_train, np.ndarray)
 
     """ Create result table """
     console = Console(record=True)
@@ -114,7 +116,8 @@ def main(opt):
                       loss=opt.loss,
                       batchsz=opt.batchsz,
                       r=opt.round,
-                      enc_in=1)
+                      enc_in=1,
+                      np_list=np_list)
         table.add_row(*datum)
         console.print(table)
         console.save_svg(os.path.join(save_dir, 'results.svg'), theme=MONOKAI)  
@@ -130,17 +133,20 @@ def train(model, modelConfigs, data, save_dir, ahead,
           loss:str = 'MSE',
           batchsz:int = 64,
           r: int = 4,
-          enc_in: int = 1) -> list:
+          enc_in: int = 1,
+          np_list:bool = False) -> list:
     # import tensorflow as tf
     # model = tf.keras.models.load_model('VanillaLSTM__Tensorflow')
     # model.summary()
+
     model = model(input_shape=data[0][0].shape[-2:],
                   modelConfigs=modelConfigs, 
                   output_shape=ahead, 
                   seed=seed,
                   normalize_layer=None,
                   save_dir=save_dir,
-                  enc_in=enc_in)
+                  enc_in=enc_in,
+                  np_list=np_list)
     model.build()
     # model.model.built = True
     # model.load('LTSF_Linear__Tensorflow_bestckpt.index')
@@ -160,7 +166,7 @@ def train(model, modelConfigs, data, save_dir, ahead,
     yvalhat = model.predict(X=data[1][0])
 
     # calculate scores
-    print(data[2][1], yhat)
+    # print(data[2][1], yhat)
     scores = model.score(y=data[2][1], yhat=yhat, r=r, path=save_dir)
 
     # plot values
