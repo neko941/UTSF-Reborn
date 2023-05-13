@@ -10,6 +10,7 @@ from datetime import timedelta
 from datetime import datetime
 from dateutil.parser import parse
 from multiprocessing.pool import ThreadPool
+from npy_append_array import NpyAppendArray
 
 from utils.general import yaml_load
 from utils.general import list_convert
@@ -98,9 +99,9 @@ class DatasetController():
         self.segmentFeature = None
 
         self.num_samples = []
+        self.use_disk = True
 
     def execute(self, cyclicalPattern=False):
-        self.use_disk = False
         if len(self.y_train) == 0:
             self.GetDataPaths(dataPaths=self.dataPaths)
             self.ReadFileAddFetures(csvs=self.dataFilePaths, dirAsFeature=self.dirAsFeature, hasHeader=True)
@@ -115,12 +116,12 @@ class DatasetController():
             if cyclicalPattern: self.CyclicalPattern()
             self.df = self.StripDataset(df=self.df)
 
-            # self.df = self.ReduceMemoryUsage(df=self.df, info=True)
-            # with self.ProgressBar() as progress:
-            #     for i in progress.track(range(10), description='Adding columns'):
-            #         self.df = self.df.with_columns(pl.col(self.targetFeatures).alias(f'thecol{i}'))
-            #         # self.df = self.df.shrink_to_fit()
-            #         self.trainFeatures.append(f'thecol{i}')
+            self.df = self.ReduceMemoryUsage(df=self.df, info=True)
+            with self.ProgressBar() as progress:
+                for i in progress.track(range(10), description='Adding columns'):
+                    self.df = self.df.with_columns(pl.col(self.targetFeatures).alias(f'thecol{i}'))
+                    # self.df = self.df.shrink_to_fit()
+                    self.trainFeatures.append(f'thecol{i}')
 
             self.SplittingData(splitRatio=self.splitRatio, lag=self.lag, ahead=self.ahead, offset=self.offset, multimodels=False, use_disk=self.use_disk)      
         return self
@@ -226,28 +227,28 @@ class DatasetController():
                 self.df = df.with_columns(pl.col(f).fill_null(strategy=strategy))
 
     def GetData(self, shuffle):
-        if self.use_disk:
-            if shuffle:
-                random.shuffle(self.xtr)
-                random.shuffle(self.ytr)
-                random.shuffle(self.xv)
-                random.shuffle(self.yv)
-                random.shuffle(self.xt)
-                random.shuffle(self.yt)
-            self.X_train = self.xtr
-            self.y_train = self.ytr
-            self.X_val = self.xv
-            self.y_val = self.yv
-            self.X_test = self.xt
-            self.y_test = self.yt
-        else:
-            if shuffle:
-                np.random.shuffle(self.X_train)
-                np.random.shuffle(self.y_train)
-                np.random.shuffle(self.X_val)
-                np.random.shuffle(self.y_val)
-                np.random.shuffle(self.X_test)
-                np.random.shuffle(self.y_test)
+        # if self.use_disk:
+        #     if shuffle:
+        #         random.shuffle(self.xtr)
+        #         random.shuffle(self.ytr)
+        #         random.shuffle(self.xv)
+        #         random.shuffle(self.yv)
+        #         random.shuffle(self.xt)
+        #         random.shuffle(self.yt)
+        #     self.X_train = self.xtr
+        #     self.y_train = self.ytr
+        #     self.X_val = self.xv
+        #     self.y_val = self.yv
+        #     self.X_test = self.xt
+        #     self.y_test = self.yt
+        # else:
+        if shuffle:
+            np.random.shuffle(self.X_train)
+            np.random.shuffle(self.y_train)
+            np.random.shuffle(self.X_val)
+            np.random.shuffle(self.y_val)
+            np.random.shuffle(self.X_test)
+            np.random.shuffle(self.y_test)
         return self.X_train, self.y_train, self.X_val, self.y_val, self.X_test, self.y_test
 
     def GetDataPaths(self, dataPaths=None, extensions=('.csv')):
@@ -452,7 +453,8 @@ class DatasetController():
         else:
             train_end = int(length*splitRatio[0])
             val_end = int(length*(splitRatio[0] + splitRatio[1]))
-        return [features[0:train_end], features[train_end:val_end], features[val_end:length]], [labels[0:train_end], labels[train_end:val_end], labels[val_end:length]]
+        return [features[0:train_end], features[train_end:val_end], features[val_end:length]],\
+               [  labels[0:train_end],   labels[train_end:val_end],   labels[val_end:length]]
 
     def SplittingData(self, splitRatio, lag, ahead, offset, multimodels=False, use_disk=False, save_dir=None):
         if not save_dir: save_dir = self.savePath
@@ -466,15 +468,19 @@ class DatasetController():
         if offset<ahead: offset=ahead
 
         if use_disk:
-            path = Path(self.savePath, "splitted")
-            xtr = path / 'xtrain'
-            xv  = path / 'xval'
-            xt  = path / 'xtest'
-            ytr = path / 'ytrain'
-            yv  = path / 'yval'
-            yt  = path / 'ytest'
-
-            for p in [path, xtr, xv, xt, ytr, yv, yt]: p.mkdir(parents=True, exist_ok=True)
+            xtr = save_dir / 'xtrain.npy'
+            ytr = save_dir / 'ytrain.npy'
+            xv  = save_dir / 'xval.npy'
+            yv  = save_dir / 'yval.npy'
+            xt  = save_dir / 'xtest.npy'
+            yt  = save_dir / 'ytest.npy'
+            xtr_writer =  NpyAppendArray(xtr)
+            ytr_writer =  NpyAppendArray(ytr)
+            xv_writer =  NpyAppendArray(xv)
+            yv_writer =  NpyAppendArray(yv)
+            xt_writer =  NpyAppendArray(xt)
+            yt_writer =  NpyAppendArray(yt)
+            # for p in [path, xtr, xv, xt, ytr, yv, yt]: p.mkdir(parents=True, exist_ok=True)
 
         if self.segmentFeature:
             data = []
@@ -496,13 +502,20 @@ class DatasetController():
                     for idx, result in enumerate(p.imap(self.TimeBasedCrossValidation, data)):
                         x = result[0]
                         y = result[1]
+
                         if use_disk:
-                            np.save(open(xtr / f'{u[idx]}.npy', 'wb'), x[0])
-                            np.save(open(ytr / f'{u[idx]}.npy', 'wb'), y[0])
-                            np.save(open(xv / f'{u[idx]}.npy', 'wb'), x[1])
-                            np.save(open(yv / f'{u[idx]}.npy', 'wb'), y[1])
-                            np.save(open(xt / f'{u[idx]}.npy', 'wb'), x[2])
-                            np.save(open(yt / f'{u[idx]}.npy', 'wb'), y[2])
+                            # np.save(open(xtr / f'{u[idx]}.npy', 'wb'), x[0])
+                            # np.save(open(ytr / f'{u[idx]}.npy', 'wb'), y[0])
+                            # np.save(open(xv / f'{u[idx]}.npy', 'wb'), x[1])
+                            # np.save(open(yv / f'{u[idx]}.npy', 'wb'), y[1])
+                            # np.save(open(xt / f'{u[idx]}.npy', 'wb'), x[2])
+                            # np.save(open(yt / f'{u[idx]}.npy', 'wb'), y[2])
+                            xtr_writer.append(np.array(x[0]))
+                            ytr_writer.append(np.array(y[0]))
+                            xv_writer.append(np.array(x[1]))
+                            yv_writer.append(np.array(y[1]))
+                            xt_writer.append(np.array(x[2]))
+                            yt_writer.append(np.array(y[2]))
                         else:
                             if multimodels:
                                 self.X_train.append(x[0])
@@ -524,6 +537,13 @@ class DatasetController():
                                                 'val': len(y[1]),
                                                 'test': len(y[2])})
                         progress.advance(task_id)
+            if use_disk:
+                xtr_writer.close()
+                xv_writer.close()
+                xt_writer.close()
+                ytr_writer.close()
+                yv_writer.close()
+                yt_writer.close()
         else:
             if self.df is not None: self.df.write_csv(save_dir / 'data_processed.csv')
             d = self.df.clone()
@@ -556,12 +576,20 @@ class DatasetController():
         #                              'test': 3}
 
         if use_disk:
-            self.xtr = [Path(xtr) / f for f in os.listdir(xtr) if f.endswith('.npy')]
-            self.ytr = [Path(ytr) / f for f in os.listdir(ytr) if f.endswith('.npy')]
-            self.xv = [Path(xv) / f for f in os.listdir(xv) if f.endswith('.npy')]
-            self.yv = [Path(yv) / f for f in os.listdir(yv) if f.endswith('.npy')]
-            self.xt = [Path(xt) / f for f in os.listdir(xt) if f.endswith('.npy')]
-            self.yt = [Path(yt) / f for f in os.listdir(yt) if f.endswith('.npy')]
+            # self.xtr = [Path(xtr) / f for f in os.listdir(xtr) if f.endswith('.npy')]
+            # self.ytr = [Path(ytr) / f for f in os.listdir(ytr) if f.endswith('.npy')]
+            # self.xv = [Path(xv) / f for f in os.listdir(xv) if f.endswith('.npy')]
+            # self.yv = [Path(yv) / f for f in os.listdir(yv) if f.endswith('.npy')]
+            # self.xt = [Path(xt) / f for f in os.listdir(xt) if f.endswith('.npy')]
+            # self.yt = [Path(yt) / f for f in os.listdir(yt) if f.endswith('.npy')]
+            
+            self.X_train = np.load(file=xtr, mmap_mode='r')
+            self.y_train = np.load(file=ytr, mmap_mode='r')
+            self.X_val = np.load(file=xv, mmap_mode='r')
+            self.y_val = np.load(file=yv, mmap_mode='r')
+            self.X_test = np.load(file=xt, mmap_mode='r')
+            self.y_test = np.load(file=yt, mmap_mode='r')
+
             # self.y_train = self.LoadNumpyDir(ytr)
             # np.save(open(save_dir / 'y_train.npy', 'wb'), self.y_train)
             # self.y_val = self.LoadNumpyDir(yv)
@@ -581,17 +609,18 @@ class DatasetController():
             self.y_val = np.array(self.y_val)
             self.X_test = np.array(self.X_test)
             self.y_test = np.array(self.y_test)
+            if len(self.X_train) != 0: np.save(open(save_dir / 'X_train.npy', 'wb'), self.X_train)
+            if len(self.y_train) != 0: np.save(open(save_dir / 'y_train.npy', 'wb'), self.y_train)
+            if len(self.X_val) != 0: np.save(open(save_dir / 'X_val.npy', 'wb'), self.X_val)
+            if len(self.y_val) != 0: np.save(open(save_dir / 'y_val.npy', 'wb'), self.y_val)
+            if len(self.X_test) != 0: np.save(open(save_dir / 'X_test.npy', 'wb'), self.X_test)
+            if len(self.y_test) != 0: np.save(open(save_dir / 'y_test.npy', 'wb'), self.y_test)
 
         if len(self.num_samples) != 0: 
             with open(save_dir / "num_samples.json", "w") as final: 
                 json.dump(self.num_samples, final, indent=4) 
         
-        if len(self.X_train) != 0: np.save(open(save_dir / 'X_train.npy', 'wb'), self.X_train)
-        if len(self.y_train) != 0: np.save(open(save_dir / 'y_train.npy', 'wb'), self.y_train)
-        if len(self.X_val) != 0: np.save(open(save_dir / 'X_val.npy', 'wb'), self.X_val)
-        if len(self.y_val) != 0: np.save(open(save_dir / 'y_val.npy', 'wb'), self.y_val)
-        if len(self.X_test) != 0: np.save(open(save_dir / 'X_test.npy', 'wb'), self.X_test)
-        if len(self.y_test) != 0: np.save(open(save_dir / 'y_test.npy', 'wb'), self.y_test)
+        
     
     def LoadNumpyDir(self, dir_path):
         files = [Path(dir_path) / f for f in os.listdir(dir_path) if f.endswith('.npy')]

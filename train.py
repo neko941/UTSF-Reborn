@@ -10,6 +10,7 @@ ROOT = Path(os.path.relpath(ROOT, Path.cwd()))  # relative
 import absl.logging
 absl.logging.set_verbosity(absl.logging.ERROR) # disable absl INFO and WARNING log messages
 
+import gc
 import numpy as np
 import matplotlib.pyplot as plt 
 from utils.dataset import DatasetController
@@ -92,7 +93,17 @@ def main(opt):
                                 polarsFilling=opt.polarsFilling,
                                 machineFilling=opt.machineFilling).execute(cyclicalPattern=opt.cyclicalPattern)
     X_train, y_train, X_val, y_val, X_test, y_test = dataset.GetData(shuffle=shuffle)
-    np_list = not isinstance(X_train, np.ndarray)
+
+    # print(X_train.shape)
+    # print(y_train.shape)
+    # print(X_val.shape)
+    # print(y_val.shape)
+    # print(X_test.shape)
+    # print(y_test.shape)
+    # exit()
+
+    del dataset
+    gc.collect()
 
     """ Create result table """
     console = Console(record=True)
@@ -116,8 +127,7 @@ def main(opt):
                       loss=opt.loss,
                       batchsz=opt.batchsz,
                       r=opt.round,
-                      enc_in=1,
-                      np_list=np_list)
+                      enc_in=1)
         table.add_row(*datum)
         console.print(table)
         console.save_svg(os.path.join(save_dir, 'results.svg'), theme=MONOKAI)  
@@ -133,8 +143,7 @@ def train(model, modelConfigs, data, save_dir, ahead,
           loss:str = 'MSE',
           batchsz:int = 64,
           r: int = 4,
-          enc_in: int = 1,
-          np_list:bool = False) -> list:
+          enc_in: int = 1) -> list:
     # import tensorflow as tf
     # model = tf.keras.models.load_model('VanillaLSTM__Tensorflow')
     # model.summary()
@@ -145,8 +154,7 @@ def train(model, modelConfigs, data, save_dir, ahead,
                   seed=seed,
                   normalize_layer=None,
                   save_dir=save_dir,
-                  enc_in=enc_in,
-                  np_list=np_list)
+                  enc_in=enc_in)
     model.build()
     # model.model.built = True
     # model.load('LTSF_Linear__Tensorflow_bestckpt.index')
