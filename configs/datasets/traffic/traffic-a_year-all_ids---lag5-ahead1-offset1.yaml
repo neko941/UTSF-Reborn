@@ -1,6 +1,6 @@
-X_train: .\data\processed\traffic\traffic-a_year-all_ids\lag5-ahead1-offset1\X_train.npy
-y_train: .\data\processed\traffic\traffic-a_year-all_ids\lag5-ahead1-offset1\y_train.npy
-X_val:   .\data\processed\traffic\traffic-a_year-all_ids\lag5-ahead1-offset1\X_val.npy
-y_val:   .\data\processed\traffic\traffic-a_year-all_ids\lag5-ahead1-offset1\y_val.npy
-X_test:  .\data\processed\traffic\traffic-a_year-all_ids\lag5-ahead1-offset1\X_test.npy
-y_test:  .\data\processed\traffic\traffic-a_year-all_ids\lag5-ahead1-offset1\y_test.npy
+X_train: .\data\processed\traffic\traffic-a_year-all_ids\lag5-ahead1-offset1\xtrain.npy
+y_train: .\data\processed\traffic\traffic-a_year-all_ids\lag5-ahead1-offset1\ytrain.npy
+X_val:   .\data\processed\traffic\traffic-a_year-all_ids\lag5-ahead1-offset1\xval.npy
+y_val:   .\data\processed\traffic\traffic-a_year-all_ids\lag5-ahead1-offset1\yval.npy
+X_test:  .\data\processed\traffic\traffic-a_year-all_ids\lag5-ahead1-offset1\xtest.npy
+y_test:  .\data\processed\traffic\traffic-a_year-all_ids\lag5-ahead1-offset1\ytest.npy

@@ -169,18 +169,21 @@ def train(model, modelConfigs, data, save_dir, ahead,
     model.save(file_name=f'{model.__class__.__name__}')
     
     # predict values
-    yhat = model.predict(X=data[2][0])
-    ytrainhat = model.predict(X=data[0][0])
-    yvalhat = model.predict(X=data[1][0])
+    yhat = model.predict(X=data[2][0][:10_000], name='test')
+    ytrainhat = model.predict(X=data[0][0][:10_000], name='train')
+    yvalhat = model.predict(X=data[1][0][:10_000], name='val')
 
     # calculate scores
     # print(data[2][1], yhat)
-    scores = model.score(y=data[2][1], yhat=yhat, r=r, path=save_dir)
+    scores = model.score(y=data[2][1][:10_000], 
+                         yhat=yhat, 
+                         # path=save_dir,
+                         r=r)
 
     # plot values
-    model.plot(save_dir=save_dir, y=data[0][1], yhat=ytrainhat, dataset='Train')
-    model.plot(save_dir=save_dir, y=data[1][1], yhat=yvalhat, dataset='Val')
-    model.plot(save_dir=save_dir, y=data[2][1], yhat=yhat, dataset='Test')
+    model.plot(save_dir=save_dir, y=data[0][1][:10_000], yhat=ytrainhat, dataset='Train')
+    model.plot(save_dir=save_dir, y=data[1][1][:10_000], yhat=yvalhat, dataset='Val')
+    model.plot(save_dir=save_dir, y=data[2][1][:10_000], yhat=yhat, dataset='Test')
 
     return [model.__class__.__name__, model.time_used, *scores]
 

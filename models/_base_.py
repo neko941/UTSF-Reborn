@@ -35,9 +35,18 @@ import numpy as np
 import pickle
 from utils.general import yaml_load
 from pathlib import Path
+from utils.npy_utils import NpyFileAppend
 
 # import torch.optim as optim
 # import torch.nn as nn
+
+from rich.progress import track
+from rich.progress import Progress
+from rich.progress import BarColumn 
+from rich.progress import TextColumn
+from rich.progress import TimeElapsedColumn
+from rich.progress import MofNCompleteColumn
+from rich.progress import TimeRemainingColumn
 
 class BaseModel:
     def __init__(self, modelConfigs, save_dir='.'):
@@ -55,15 +64,16 @@ class BaseModel:
         self.mkdirs(path=save_dir)
 
     def mkdirs(self, path):
-        self.path_log          = os.path.join(path, self.dir_log)
-        self.path_plot         = os.path.join(path, self.dir_plot)
-        self.path_value        = os.path.join(path, self.dir_value)
-        self.path_model        = os.path.join(path, self.dir_model)
-        self.path_weight       = os.path.join(path, self.dir_weight)
-        self.path_architecture = os.path.join(path, self.dir_architecture)
+        path = Path(path)
+        self.path_log          = path / self.dir_log
+        self.path_plot         = path / self.dir_plot
+        self.path_value        = path / self.dir_value
+        self.path_model        = path / self.dir_model
+        self.path_weight       = path / self.dir_weight
+        self.path_architecture = path / self.dir_architecture
 
         for p in [self.path_log, self.path_plot, self.path_value, self.path_model, self.path_weight, self.path_architecture]: 
-            os.makedirs(name=p, exist_ok=True)
+            p.mkdir(parents=True, exist_ok=True)
 
     @abstractmethod
     def build(self, *inputs):
@@ -102,8 +112,27 @@ class BaseModel:
                       ylabel='Value')
         except: pass
 
-    def score(self, y, yhat, r, path=None):
-        return score(y=y, yhat=yhat, r=r, path=path, model=self.__class__.__name__)
+    def score(self, 
+              y, 
+              yhat, 
+              # path=None,
+              r):
+        return score(y=y, 
+                     yhat=yhat, 
+                     # path=path, 
+                     # model=self.__class__.__name__,
+                     r=r)
+
+    def ProgressBar(self):
+        return Progress("[bright_cyan][progress.description]{task.description}",
+                        BarColumn(),
+                        TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+                        TextColumn("•Items"),
+                        MofNCompleteColumn(), # "{task.completed}/{task.total}",
+                        TextColumn("•Remaining"),
+                        TimeRemainingColumn(),
+                        TextColumn("•Total"),
+                        TimeElapsedColumn())
 
 class MachineLearningModel(BaseModel):
     def __init__(self, modelConfigs, save_dir, **kwargs):
@@ -116,12 +145,13 @@ class MachineLearningModel(BaseModel):
         return [i.flatten() for i in x]
 
     def fit(self, X_train, y_train, **kwargs):
+        vectorized = np.vectorize(self.preprocessing)
         start = time.time()
         if self.is_classifier:
-            y_train = np.ravel([i.astype(int) for i in self.preprocessing(x=y_train)], order='C') 
+            y_train = np.ravel([i.astype(int) for i in vectorized(y_train)], order='C') 
         else:
-            y_train = np.ravel(self.preprocessing(x=y_train), order='C')
-        self.model.fit(X=self.preprocessing(x=X_train), 
+            y_train = np.ravel(vectorized(y_train), order='C')
+        self.model.fit(X=vectorized(X_train), 
                        y=y_train)
         self.time_used = convert_seconds(time.time() - start)
     
@@ -136,6 +166,21 @@ class MachineLearningModel(BaseModel):
 
     def predict(self, X):
         return self.model.predict(self.preprocessing(x=X)) 
+
+from tensorflow.keras.utils import Sequence 
+
+class DataGenerator(Sequence):
+    def __init__(self, x, y, batchsz):
+        self.x, self.y = x, y
+        self.batch_size = batchsz
+
+    def __len__(self):
+        return int(np.ceil(len(self.x) / float(self.batch_size)))
+
+    def __getitem__(self, idx):
+        batch_x = self.x[idx * self.batch_size:(idx + 1) * self.batch_size]
+        batch_y = self.y[idx * self.batch_size:(idx + 1) * self.batch_size]
+        return batch_x, batch_y
 
 class TensorflowModel(BaseModel):
     def __init__(self, modelConfigs, input_shape, output_shape, save_dir, normalize_layer=None, seed=941, **kwargs):
@@ -232,8 +277,12 @@ class TensorflowModel(BaseModel):
     def fit(self, X_train, y_train, X_val, y_val, patience, learning_rate, epochs, batchsz, optimizer='Adam', loss='MSE', **kwargs):
         start = time.time()
         self.model.compile(optimizer=self.function_dict[optimizer](learning_rate=learning_rate), loss=self.function_dict[loss]())
-        self.history = self.model.fit(self.preprocessing(x=X_train, y=y_train, batchsz=batchsz), 
-                                      validation_data=self.preprocessing(x=X_val, y=y_val, batchsz=batchsz),
+        # self.history = self.model.fit(self.preprocessing(x=X_train, y=y_train, batchsz=batchsz), 
+        #                               validation_data=self.preprocessing(x=X_val, y=y_val, batchsz=batchsz),
+        #                               epochs=epochs, 
+        #                               callbacks=self.callbacks(patience=patience, min_delta=0.001))
+        self.history = self.model.fit(DataGenerator(x=X_train, y=y_train, batchsz=batchsz), 
+                                      validation_data=DataGenerator(x=X_val, y=y_val, batchsz=batchsz),
                                       epochs=epochs, 
                                       callbacks=self.callbacks(patience=patience, min_delta=0.001))
         self.time_used = convert_seconds(time.time() - start)
@@ -250,7 +299,15 @@ class TensorflowModel(BaseModel):
                       xlabel='Epoch',
                       ylabel='Loss Value')
 
-    def predict(self, X):
+    def predict(self, X, name=''):
+        # filename = self.path_value / f'yhat{name}-{self.__class__.__name__}.npy'
+        # # vectorized = np.vectorize(self.model.predict)
+        # with self.ProgressBar() as progress:
+        #     with NpyFileAppend(filename, delete_if_exists=True) as npfa:
+        #         for x in progress.track(X, description='Predicting'):
+        #             # print(X.shape, x.shape)
+        #             npfa.append(self.model.predict(x[np.newaxis, :], verbose=0))
+        # return np.load(file=filename, mmap_mode='r')
         return self.model.predict(X, verbose=0)
     
     def save(self, file_name:str, extension:str='.h5'):

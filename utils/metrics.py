@@ -36,7 +36,11 @@ metric_dict = {
     'R2' : R2
 }
 
-def score(y, yhat, r, path=None, model=''):
+def score(y, 
+          yhat, 
+          # path=None, 
+          # model='',
+          r):
     if len(yhat.shape) == 3: 
         nsamples, nx, ny = yhat.shape
         yhat = yhat.reshape((nsamples,nx*ny))
@@ -44,7 +48,7 @@ def score(y, yhat, r, path=None, model=''):
         results = [str(np.round(np.float64(metric_dict[key](y, yhat)), r)) for key in metric_dict.keys()]
     else:
         results = [str(metric_dict[key](y, yhat)) for key in metric_dict.keys()]
-    if path: 
-        os.makedirs(os.path.join(path, 'values'), exist_ok=True)
-        np.save(open(os.path.join(path, 'values', f'yhat-{model}.npy'), 'wb'), yhat)
+    # if path: 
+    #     os.makedirs(os.path.join(path, 'values'), exist_ok=True)
+    #     np.save(open(os.path.join(path, 'values', f'yhat-{model}.npy'), 'wb'), yhat)
     return results

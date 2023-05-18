@@ -10,7 +10,8 @@ from datetime import timedelta
 from datetime import datetime
 from dateutil.parser import parse
 from multiprocessing.pool import ThreadPool
-from npy_append_array import NpyAppendArray
+# from npy_append_array import NpyAppendArray
+from utils.npy_utils import NpyFileAppend
 
 from utils.general import yaml_load
 from utils.general import list_convert
@@ -74,12 +75,14 @@ class DatasetController():
             self.X_test = []
             self.y_test = []
         except KeyError:
-            self.X_train = np.load(self.dataConfigs['X_train'])
-            self.y_train = np.load(self.dataConfigs['y_train'])
-            self.X_val = np.load(self.dataConfigs['X_val'])
-            self.y_val = np.load(self.dataConfigs['y_val'])
-            self.X_test = np.load(self.dataConfigs['X_test'])
-            self.y_test = np.load(self.dataConfigs['y_test'])
+            # print('Getting data from files')
+            self.X_train = np.load(file=self.dataConfigs['X_train'], mmap_mode='r')
+            self.y_train = np.load(file=self.dataConfigs['y_train'], mmap_mode='r')
+            self.X_val = np.load(file=self.dataConfigs['X_val'], mmap_mode='r')
+            self.y_val = np.load(file=self.dataConfigs['y_val'], mmap_mode='r')
+            self.X_test = np.load(file=self.dataConfigs['X_test'], mmap_mode='r')
+            self.y_test = np.load(file=self.dataConfigs['y_test'], mmap_mode='r')
+            # print('Done', end='\n\n')
 
         self.configsPath = configsPath
         self.workers = workers
@@ -106,10 +109,25 @@ class DatasetController():
             self.GetDataPaths(dataPaths=self.dataPaths)
             self.ReadFileAddFetures(csvs=self.dataFilePaths, dirAsFeature=self.dirAsFeature, hasHeader=True)
             self.df = self.df.drop_nulls()
+
             if self.timeFormat is not None: self.UpdateDateColumnDataType(dateFormat=self.timeFormat, f=pl.Datetime, t=pl.Datetime)
             self.TimeIDToDateTime(timeIDColumn=self.timeID, granularity=self.granularity, startTimeId=self.startTimeId)
             self.df = self.StripDataset(df=self.df)
             self.GetSegmentFeature(dirAsFeature=self.dirAsFeature, splitDirFeature=self.splitDirFeature, splitFeature=self.splitFeature)
+
+
+            save_dir = Path(self.savePath) / 'values'
+            save_dir.mkdir(parents=True, exist_ok=True)
+            u = self.df[self.segmentFeature].unique()
+            with self.ProgressBar() as progress:
+                for ele in progress.track(u, description='Splitting jobs'):
+                    d = self.df.filter(pl.col(self.segmentFeature) == ele).clone()
+                    d.write_csv(file=save_dir / f'{ele}.csv', separator=self.delimiter)
+
+
+
+
+
             self.df = self.GetUsedColumn(df=self.df)
             if self.machineFilling: self.MachineLearningFillingMissingData(model=self.machineFilling)
             if self.polarsFilling: self.PolarsFillingMissingData(strategy=self.polarsFilling, use_disk=self.use_disk)
@@ -117,11 +135,11 @@ class DatasetController():
             self.df = self.StripDataset(df=self.df)
 
             self.df = self.ReduceMemoryUsage(df=self.df, info=True)
-            with self.ProgressBar() as progress:
-                for i in progress.track(range(10), description='Adding columns'):
-                    self.df = self.df.with_columns(pl.col(self.targetFeatures).alias(f'thecol{i}'))
-                    # self.df = self.df.shrink_to_fit()
-                    self.trainFeatures.append(f'thecol{i}')
+            # with self.ProgressBar() as progress:
+            #     for i in progress.track(range(10), description='Adding columns'):
+            #         self.df = self.df.with_columns(pl.col(self.targetFeatures).alias(f'thecol{i}'))
+            #         # self.df = self.df.shrink_to_fit()
+            #         self.trainFeatures.append(f'thecol{i}')
 
             self.SplittingData(splitRatio=self.splitRatio, lag=self.lag, ahead=self.ahead, offset=self.offset, multimodels=False, use_disk=self.use_disk)      
         return self
@@ -474,12 +492,12 @@ class DatasetController():
             yv  = save_dir / 'yval.npy'
             xt  = save_dir / 'xtest.npy'
             yt  = save_dir / 'ytest.npy'
-            xtr_writer =  NpyAppendArray(xtr)
-            ytr_writer =  NpyAppendArray(ytr)
-            xv_writer =  NpyAppendArray(xv)
-            yv_writer =  NpyAppendArray(yv)
-            xt_writer =  NpyAppendArray(xt)
-            yt_writer =  NpyAppendArray(yt)
+            xtr_writer =  NpyFileAppend(xtr)
+            ytr_writer =  NpyFileAppend(ytr)
+            xv_writer =  NpyFileAppend(xv)
+            yv_writer =  NpyFileAppend(yv)
+            xt_writer =  NpyFileAppend(xt)
+            yt_writer =  NpyFileAppend(yt)
             # for p in [path, xtr, xv, xt, ytr, yv, yt]: p.mkdir(parents=True, exist_ok=True)
 
         if self.segmentFeature:
@@ -489,7 +507,7 @@ class DatasetController():
                 for ele in progress.track(u, description='Splitting jobs'):
                     d = self.df.filter(pl.col(self.segmentFeature) == ele).clone()
                     d = self.FillDate(df=d)
-                    d.drop_in_place(self.dateFeature) 
+                    d.drop_in_place(self.dateFeature)
                     data.append([d, lag, ahead, offset, splitRatio, False])
             
             if self.df is not None: self.df.write_csv(save_dir / 'data_processed.csv')
