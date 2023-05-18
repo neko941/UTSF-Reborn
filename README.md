@@ -1,4 +1,4 @@
-# Ultimate Time Series Forcasting
+# Ultimate Time Series Forecasting
 
 # Installation
 
