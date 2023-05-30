@@ -39,7 +39,8 @@ class DatasetController():
                  offset=1, 
                  savePath='.', 
                  polarsFilling=None, 
-                 machineFilling=None):
+                 machineFilling=None,
+                 low_memory=False):
         """ Read data config """
         self.dataConfigs = yaml_load(configsPath)
 
@@ -102,7 +103,7 @@ class DatasetController():
         self.segmentFeature = None
 
         self.num_samples = []
-        self.use_disk = True
+        self.low_memory = low_memory
 
     def execute(self, cyclicalPattern=False):
         if len(self.y_train) == 0:
@@ -115,22 +116,17 @@ class DatasetController():
             self.df = self.StripDataset(df=self.df)
             self.GetSegmentFeature(dirAsFeature=self.dirAsFeature, splitDirFeature=self.splitDirFeature, splitFeature=self.splitFeature)
 
-
-            save_dir = Path(self.savePath) / 'values'
-            save_dir.mkdir(parents=True, exist_ok=True)
-            u = self.df[self.segmentFeature].unique()
-            with self.ProgressBar() as progress:
-                for ele in progress.track(u, description='Splitting jobs'):
-                    d = self.df.filter(pl.col(self.segmentFeature) == ele).clone()
-                    d.write_csv(file=save_dir / f'{ele}.csv', separator=self.delimiter)
-
-
-
-
+            # save_dir = Path(self.savePath) / 'values'
+            # save_dir.mkdir(parents=True, exist_ok=True)
+            # u = self.df[self.segmentFeature].unique()
+            # with self.ProgressBar() as progress:
+            #     for ele in progress.track(u, description='Splitting jobs'):
+            #         d = self.df.filter(pl.col(self.segmentFeature) == ele).clone()
+            #         d.write_csv(file=save_dir / f'{ele}.csv', separator=self.delimiter)
 
             self.df = self.GetUsedColumn(df=self.df)
             if self.machineFilling: self.MachineLearningFillingMissingData(model=self.machineFilling)
-            if self.polarsFilling: self.PolarsFillingMissingData(strategy=self.polarsFilling, use_disk=self.use_disk)
+            if self.polarsFilling: self.PolarsFillingMissingData(strategy=self.polarsFilling, low_memory=self.low_memory)
             if cyclicalPattern: self.CyclicalPattern()
             self.df = self.StripDataset(df=self.df)
 
@@ -141,7 +137,10 @@ class DatasetController():
             #         # self.df = self.df.shrink_to_fit()
             #         self.trainFeatures.append(f'thecol{i}')
 
-            self.SplittingData(splitRatio=self.splitRatio, lag=self.lag, ahead=self.ahead, offset=self.offset, multimodels=False, use_disk=self.use_disk)      
+            self.df = self.df.with_columns(pl.col(self.targetFeatures).rolling_mean(window_size=5).alias('roll'))
+            self.trainFeatures.append('roll')
+            # print(self.df
+            self.SplittingData(splitRatio=self.splitRatio, lag=self.lag, ahead=self.ahead, offset=self.offset, multimodels=False, low_memory=self.low_memory)      
         return self
 
     def SortDataset(self):
@@ -210,10 +209,10 @@ class DatasetController():
                     else: continue  # only executed if the inner loop did NOT break
                     break  # only executed if the inner loop DID break
     
-    def PolarsFillingMissingData(self, strategy, use_disk=False):
+    def PolarsFillingMissingData(self, strategy, low_memory=False):
         self.SortDataset()
         if self.segmentFeature:
-            if use_disk:    
+            if low_memory:    
                 p = Path(self.savePath , "temp")
                 p.mkdir(parents=True, exist_ok=True)
             else: dfs = None
@@ -224,12 +223,12 @@ class DatasetController():
                     df = df.with_columns(pl.col(self.segmentFeature).fill_null(pl.lit(ele)))
                     for f in [feature for feature in [*self.trainFeatures, self.targetFeatures] if feature != self.segmentFeature]:
                         df = df.with_columns(pl.col(f).fill_null(strategy=strategy))
-                    if use_disk: df.write_csv(file=p / f'{ele}.csv', separator=self.delimiter)
+                    if low_memory: df.write_csv(file=p / f'{ele}.csv', separator=self.delimiter)
                     else:
                         if dfs is None: dfs = df
                         else: dfs = pl.concat([dfs, df])
 
-            if use_disk:
+            if low_memory:
                 self.df = None
                 self.dataFilePaths = []
                 self.dataPaths = []
@@ -245,7 +244,7 @@ class DatasetController():
                 self.df = df.with_columns(pl.col(f).fill_null(strategy=strategy))
 
     def GetData(self, shuffle):
-        # if self.use_disk:
+        # if self.low_memory:
         #     if shuffle:
         #         random.shuffle(self.xtr)
         #         random.shuffle(self.ytr)
@@ -281,7 +280,14 @@ class DatasetController():
             elif i.endswith(extensions) and os.path.exists(i): 
                 self.dataFilePaths.append(i)
         assert len(self.dataFilePaths) > 0, 'No csv file(s)'
+        # t = [5583,8602,9235,7107,8062,600,599,499,5989,8604,8318,3302,8065,2715,4879,2636,942,4166,5402,8256,5296,6829,9270,9064,3237,9231,3806,7877,8683,9233,7593,9234,6226,1256,6228,8822,3651,5988,6828,7696,7148,6666,7259,7320,1257,3303,3665,3805,8300,3650,6225,8948,7321,8947,6619,8319,6997,48,7875,8063,7694,4878,8697,8821,5150,446,2635,7258,4165,7594,9272,47,1258,3666,308,4831,8497,4269,8603,7878,3664,8061,5582,6667,5404,6665,6826,974,7695,7109,8498,2561,8900,309,445,5405,5990,6227,6827,8605,9096,9271,8901,9269,8255,2637,7876,5403,8902,9063,6618,49,8317,3238,8824,4732,9236,6350,7257,6617,4731,6406,7595,4270,2560,7140,4927,7108,8946,4272,4167,9353,9062,941,8682,8066,4271,4168,4832,4834,6996,8606,8823,8064,9232,1989,4928,6349,765,975,4833,9352]
+        # t = [48]
+        # self.dataFilePaths = [os.path.abspath(csv) for csv in list_convert(self.dataFilePaths) if int(os.path.basename(csv).split('.')[0]) in t]
         self.dataFilePaths = [os.path.abspath(csv) for csv in list_convert(self.dataFilePaths)]
+        import random
+        random.shuffle(self.dataFilePaths)
+        self.dataFilePaths = self.dataFilePaths[:150]
+        # print(self.dataFilePaths)
 
     def ProgressBar(self):
         return Progress("[bright_cyan][progress.description]{task.description}",
@@ -359,11 +365,17 @@ class DatasetController():
 
         max_time_id = self.df[self.timeID].max() * self.granularity + self.startTimeId - 24*60
         assert max_time_id <= 0, f'time id max should be {(24*60 - self.startTimeId) / self.granularity} else it will exceed to the next day'
+
+        # print(self.df)
+        # self.df = self.df.with_columns(pl.col(self.dateFeature).cast(pl.Datetime).alias('c'))
         self.df = self.df.with_columns(pl.col(self.dateFeature).cast(pl.Datetime) + pl.duration(minutes=(pl.col(self.timeID)-1)*self.granularity+self.startTimeId))
-    
+        # self.df = self.df.with_columns(pl.duration(minutes=(pl.col(self.timeID)-1)*self.granularity+self.startTimeId).alias('m'))
+        # self.df = self.df.sort(self.dateFeature); print(self.df); exit()
+
     def GetUsedColumn(self, df, exclude_date=False):
         if exclude_date: alist = [self.trainFeatures, self.targetFeatures]
         else: alist = [self.dateFeature, self.trainFeatures, self.targetFeatures] 
+        # else: alist = [self.dateFeature, self.trainFeatures, self.targetFeatures, 'time_id'] 
         return df[[col for i in alist for col in (i if isinstance(i, list) else [i])]]
 
     def UpdateDateColumnDataType(self, f=pl.Datetime, t=pl.Datetime, dateFormat='%Y-%M-%d'):
@@ -418,8 +430,9 @@ class DatasetController():
 
     def FillDate(self, df=None, low=None, high=None, granularity=None): 
         if not self.dateFeature: return
-        if not low: low=self.df[self.dateFeature].min()
-        if not high: high=self.df[self.dateFeature].max()
+        if df is None: df = self.df
+        if not low: low=df[self.dateFeature].min()
+        if not high: high=df[self.dateFeature].max()
         if not granularity: granularity=self.granularity
 
         d = pl.date_range(low=low,
@@ -441,6 +454,9 @@ class DatasetController():
             for idx in range(len(d)-offset-lag+1):
                 feature = d[idx:idx+lag]
                 label = d[self.targetFeatures][idx+lag+offset-ahead:idx+lag+offset].to_frame()
+                # print(d[idx:idx+lag])
+                # print(d[idx+lag+offset-ahead:idx+lag+offset])
+                # print('==================================')
                 if all(flatten_list(feature.with_columns(pl.all().is_not_null()).rows())) and all(flatten_list(label.with_columns(pl.all().is_not_null()).rows())): 
                     labels.append(np.squeeze(label.to_numpy()))
                     features.append(feature.to_numpy()) 
@@ -457,6 +473,9 @@ class DatasetController():
                 for idx in progress.track(range(len(d)-offset-lag+1), description='Splitting data'):
                     feature = d[idx:idx+lag]
                     label = d[self.targetFeatures][idx+lag+offset-ahead:idx+lag+offset].to_frame()
+                    # print(d[idx:idx+lag])
+                    # print(d[idx+lag+offset-ahead:idx+lag+offset])
+                    # print('==================================')
                     if all(flatten_list(feature.with_columns(pl.all().is_not_null()).rows())) and all(flatten_list(label.with_columns(pl.all().is_not_null()).rows())): 
                         labels.append(np.squeeze(label.to_numpy()))
                         features.append(feature.to_numpy()) 
@@ -474,7 +493,7 @@ class DatasetController():
         return [features[0:train_end], features[train_end:val_end], features[val_end:length]],\
                [  labels[0:train_end],   labels[train_end:val_end],   labels[val_end:length]]
 
-    def SplittingData(self, splitRatio, lag, ahead, offset, multimodels=False, use_disk=False, save_dir=None):
+    def SplittingData(self, splitRatio, lag, ahead, offset, multimodels=False, low_memory=False, save_dir=None):
         if not save_dir: save_dir = self.savePath
         save_dir = Path(save_dir) / 'values'
         save_dir.mkdir(parents=True, exist_ok=True)
@@ -485,7 +504,7 @@ class DatasetController():
         
         if offset<ahead: offset=ahead
 
-        if use_disk:
+        if low_memory:
             xtr = save_dir / 'xtrain.npy'
             ytr = save_dir / 'ytrain.npy'
             xv  = save_dir / 'xval.npy'
@@ -500,9 +519,16 @@ class DatasetController():
             yt_writer =  NpyFileAppend(yt)
             # for p in [path, xtr, xv, xt, ytr, yv, yt]: p.mkdir(parents=True, exist_ok=True)
 
+        # for ele in self.df[self.segmentFeature].unique():
+        #     d = self.df.filter(pl.col(self.segmentFeature) == ele).clone()
+        #     d = self.FillDate(df=d)
+        #     self.TimeBasedCrossValidation([d, lag, ahead, offset, splitRatio, False])
+        #     exit()
+
         if self.segmentFeature:
             data = []
             u = self.df[self.segmentFeature].unique()
+            # u = [5583,8602,9235,7107,8062,600,599,499,5989,8604,8318,3302,8065,2715,4879,2636,942,4166,5402,8256,5296,6829,9270,9064,3237,9231,3806,7877,8683,9233,7593,9234,6226,1256,6228,8822,3651,5988,6828,7696,7148,6666,7259,7320,1257,3303,3665,3805,8300,3650,6225,8948,7321,8947,6619,8319,6997,48,7875,8063,7694,4878,8697,8821,5150,446,2635,7258,4165,7594,9272,47,1258,3666,308,4831,8497,4269,8603,7878,3664,8061,5582,6667,5404,6665,6826,974,7695,7109,8498,2561,8900,309,445,5405,5990,6227,6827,8605,9096,9271,8901,9269,8255,2637,7876,5403,8902,9063,6618,49,8317,3238,8824,4732,9236,6350,7257,6617,4731,6406,7595,4270,2560,7140,4927,7108,8946,4272,4167,9353,9062,941,8682,8066,4271,4168,4832,4834,6996,8606,8823,8064,9232,1989,4928,6349,765,975,4833,9352]
             with self.ProgressBar() as progress:
                 for ele in progress.track(u, description='Splitting jobs'):
                     d = self.df.filter(pl.col(self.segmentFeature) == ele).clone()
@@ -521,19 +547,36 @@ class DatasetController():
                         x = result[0]
                         y = result[1]
 
-                        if use_disk:
+                        if low_memory:
                             # np.save(open(xtr / f'{u[idx]}.npy', 'wb'), x[0])
                             # np.save(open(ytr / f'{u[idx]}.npy', 'wb'), y[0])
                             # np.save(open(xv / f'{u[idx]}.npy', 'wb'), x[1])
                             # np.save(open(yv / f'{u[idx]}.npy', 'wb'), y[1])
                             # np.save(open(xt / f'{u[idx]}.npy', 'wb'), x[2])
                             # np.save(open(yt / f'{u[idx]}.npy', 'wb'), y[2])
-                            xtr_writer.append(np.array(x[0]))
-                            ytr_writer.append(np.array(y[0]))
-                            xv_writer.append(np.array(x[1]))
-                            yv_writer.append(np.array(y[1]))
-                            xt_writer.append(np.array(x[2]))
-                            yt_writer.append(np.array(y[2]))
+                            # print(f'{len(y[0]) = }')
+                            # print(f'{len(y[1]) = }')
+                            # print(f'{len(y[2]) = }')
+                            # print('====================================')
+
+                            if all([len(y[0]) > 0,
+                                    len(y[1]) > 0,
+                                    len(y[2]) > 0]):
+                            # try:
+                                xtr_writer.append(np.array(x[0]))
+                                ytr_writer.append(np.array(y[0]))
+                                xv_writer.append(np.array(x[1]))
+                                yv_writer.append(np.array(y[1]))
+                                xt_writer.append(np.array(x[2]))
+                                yt_writer.append(np.array(y[2]))
+                            # except ValueError:
+                            #     print(f'{np.array(x[0]) = }')
+                            #     print(f'{np.array(y[0]) = }')
+                            #     print(f'{np.array(x[1]) = }')
+                            #     print(f'{np.array(y[1]) = }')
+                            #     print(f'{np.array(x[2]) = }')
+                            #     print(f'{np.array(y[2]) = }')
+                            #     print('====================================')
                         else:
                             if multimodels:
                                 self.X_train.append(x[0])
@@ -555,7 +598,7 @@ class DatasetController():
                                                 'val': len(y[1]),
                                                 'test': len(y[2])})
                         progress.advance(task_id)
-            if use_disk:
+            if low_memory:
                 xtr_writer.close()
                 xv_writer.close()
                 xt_writer.close()
@@ -563,6 +606,7 @@ class DatasetController():
                 yv_writer.close()
                 yt_writer.close()
         else:
+            assert not self.low_memory, 'Low memory mode: to be implemented'
             if self.df is not None: self.df.write_csv(save_dir / 'data_processed.csv')
             d = self.df.clone()
             del self.df
@@ -593,7 +637,7 @@ class DatasetController():
         #                              'val': 2,
         #                              'test': 3}
 
-        if use_disk:
+        if low_memory:
             # self.xtr = [Path(xtr) / f for f in os.listdir(xtr) if f.endswith('.npy')]
             # self.ytr = [Path(ytr) / f for f in os.listdir(ytr) if f.endswith('.npy')]
             # self.xv = [Path(xv) / f for f in os.listdir(xv) if f.endswith('.npy')]
@@ -637,7 +681,176 @@ class DatasetController():
         if len(self.num_samples) != 0: 
             with open(save_dir / "num_samples.json", "w") as final: 
                 json.dump(self.num_samples, final, indent=4) 
+
+
+    def SplittingData(self, splitRatio, lag, ahead, offset, multimodels=False, low_memory=False, save_dir=None):
+        if not save_dir: save_dir = self.savePath
+        save_dir = Path(save_dir) / 'values'
+        save_dir.mkdir(parents=True, exist_ok=True)
+
+        from tqdm import tqdm
+        target_col_name = self.targetFeatures
+        inp_len = lag
+        lag_window = inp_len + 1
+        id_col_name = self.segmentFeature
+        time_col_name = self.dateFeature
+        digit = self.granularity
+        sample_time = f'{digit}min'
+        pd_time = 'm'
+
+        self.SortDataset()
+        if self.df is not None: self.df.write_csv(save_dir / 'data_processed.csv')
+        pl_dataframe = pl.read_csv(save_dir / 'data_processed.csv', try_parse_dates=True)
+        pl_dataframe = self.ReduceMemoryUsage(df=pl_dataframe, info=True)
+        # print(pl_dataframe); exit()
+
+        LIST_FEATURE = [target_col_name, 'roll'] 
+        FINAL_LIST_FEATURE = []
+        for ft_l in LIST_FEATURE:
+            for i in range(0, lag_window):
+                if i == 0:
+                    FINAL_LIST_FEATURE.append(ft_l)
+                else:
+                    FINAL_LIST_FEATURE.append(ft_l+f'_lag_{lag_window-i}')
+
+        current_geopath_id_count_df = sorted(int(i) for i in pl_dataframe[id_col_name].unique())
         
+        xtr = save_dir / 'xtrain.npy'
+        ytr = save_dir / 'ytrain.npy'
+        xv  = save_dir / 'xval.npy'
+        yv  = save_dir / 'yval.npy'
+        xt  = save_dir / 'xtest.npy'
+        yt  = save_dir / 'ytest.npy'
+        xtr_writer =  NpyFileAppend(xtr)
+        ytr_writer =  NpyFileAppend(ytr)
+        xv_writer =  NpyFileAppend(xv)
+        yv_writer =  NpyFileAppend(yv)
+        xt_writer =  NpyFileAppend(xt)
+        yt_writer =  NpyFileAppend(yt)
+
+        for id_ in tqdm(current_geopath_id_count_df):
+        
+            x_train = []
+            y_train = []
+            x_val = []
+            y_val = []
+            x_test = []
+            y_test = []
+            sub_pl_dataframe = pl_dataframe.filter(pl.col(id_col_name)==id_)
+
+            #########################################################
+            # Resample 
+            # if debug:
+            #     print(sub_pl_dataframe)
+            pd_df = sub_pl_dataframe.to_pandas()
+            pd_df = pd_df.drop(['kml_segment_id'], axis=1)
+            inserted_row = [pd_df.iloc[0][time_col_name].floor(sample_time)]
+            if inserted_row[0] != pd_df.iloc[0][time_col_name]:
+                inserted_row.extend(list(np.full(shape=(len(pd_df.columns)-1), fill_value=np.nan)))
+                pd_df = pd.concat([pd.DataFrame([inserted_row], columns=pd_df.columns), pd_df])
+            pd_df = pd_df.set_index(time_col_name).asfreq(sample_time)
+            pd_df.reset_index(inplace=True)
+
+            # sub_pl_dataframe = sub_pl_dataframe.drop(id_col_name)
+            sub_pl_dataframe = sub_pl_dataframe.groupby_dynamic(time_col_name, every=f"{digit}{pd_time}").agg(pl.col(target_col_name).mean())
+            sub_pl_dataframe = sub_pl_dataframe.to_pandas()
+            sub_pl_dataframe = sub_pl_dataframe.set_index(time_col_name).asfreq(sample_time)
+            sub_pl_dataframe.reset_index(inplace=True)
+            pd_df = pd_df.combine_first(sub_pl_dataframe)
+
+
+            #########################################################
+            # Feature engienering
+            pd_df = pl.from_pandas(pd_df)
+            
+            
+            
+            pd_df = pd_df[LIST_FEATURE + [time_col_name]].to_pandas()
+            # pd_df.to_csv('47_only.csv')
+            # sub_pl_dataframe.to_csv('47_only_polar.csv')
+            # exit()
+            ##########################################################
+            # Get train/val/test (remove invalid training time series data)
+            # time as index, ID and speed columns
+            
+            pd_df = pd_df.set_index(time_col_name)
+            
+            for ft in LIST_FEATURE:
+                for i in range(1, lag_window):
+                    pd_df = pd_df.merge(pd_df[ft].shift(i, freq=sample_time),
+                        left_index=True,
+                        right_index=True,
+                        how='left',
+                        suffixes=('', f'_lag_{i}'))
+           
+            pd_df = pd_df.dropna()
+            pd_df = pd_df[FINAL_LIST_FEATURE]
+            
+            input_feature =  pd_df.drop(columns=LIST_FEATURE).to_numpy()
+            
+            target_feature = pd_df[target_col_name].to_numpy()
+            # if debug:
+            #     print(pd_df.drop(columns=LIST_FEATURE).iloc[0])
+            
+            num_samples = len(target_feature)
+            train_num = train_idx = int(num_samples*splitRatio[0])
+            val_id = int(num_samples*(splitRatio[0] + splitRatio[1]))
+            val_num = val_id-train_num
+            test_num = num_samples-(train_num+val_num)
+            
+            test1 = input_feature[0:train_idx].size == 0
+            test2 = target_feature[0:train_idx].size == 0
+            test3 = input_feature[train_idx:val_id].size == 0 
+            test4 = target_feature[train_idx:val_id].size == 0
+            test5 = input_feature[val_id:].size == 0
+            test6 = target_feature[val_id:].size == 0
+
+            if any([test1, test2, test3, test4, test5, test6]):
+                print(f'{id_} is empty')
+                continue
+
+            x_train.extend(np.swapaxes(input_feature[0:train_idx].reshape((train_num, -1, inp_len)), 1,2 ))
+            y_train.extend(target_feature[0:train_idx] )
+            x_val.extend(np.swapaxes(input_feature[train_idx:val_id].reshape((val_num, -1, inp_len)), 1,2 ) )
+            y_val.extend(target_feature[train_idx:val_id] )
+            x_test.extend(np.swapaxes(input_feature[val_id:].reshape((test_num, -1, inp_len)), 1,2 ) )
+            y_test.extend(target_feature[val_id:])
+
+
+            x_train = np.array(x_train)
+            y_train = np.array(y_train)
+            x_val = np.array(x_val)
+            y_val = np.array(y_val)
+            x_test = np.array(x_test)
+            y_test = np.array(y_test)
+            
+            # Insert ID
+            x_train = np.concatenate([np.full_like(x_train[..., 0:1], fill_value=id_), x_train], axis=-1)
+            x_val = np.concatenate([np.full_like(x_val[...,0:1], fill_value=id_), x_val], axis=-1)
+            x_test = np.concatenate([np.full_like(x_test[...,0:1], fill_value=id_), x_test], axis=-1)
+            # print(x_train)
+            # exit()
+            xtr_writer.append(x_train)
+            ytr_writer.append(y_train)
+            xv_writer.append(x_val)
+            yv_writer.append(y_val)
+            xt_writer.append(x_test)
+            yt_writer.append(y_test)
+            
+            assert np.count_nonzero(np.isnan(x_test)) == 0, 'There are at least one null value in test set'
+            assert np.count_nonzero(np.isnan(x_val)) == 0, 'There are at least one null value in val set'
+            assert np.count_nonzero(np.isnan(x_train)) == 0, 'There are at least one null value in train set'
+            assert np.count_nonzero(np.isnan(y_test)) == 0, 'There are at least one null value in test set'
+            assert np.count_nonzero(np.isnan(y_val)) == 0, 'There are at least one null value in val set'
+            assert np.count_nonzero(np.isnan(y_train)) == 0, 'There are at least one null value in train set'
+
+        self.X_train = np.load(file=xtr, mmap_mode='r')
+        self.y_train = np.load(file=ytr, mmap_mode='r')
+        self.X_val = np.load(file=xv, mmap_mode='r')
+        self.y_val = np.load(file=yv, mmap_mode='r')
+        self.X_test = np.load(file=xt, mmap_mode='r')
+        self.y_test = np.load(file=yt, mmap_mode='r')
+
         
     
     def LoadNumpyDir(self, dir_path):

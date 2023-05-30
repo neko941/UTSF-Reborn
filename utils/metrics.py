@@ -4,7 +4,10 @@ from sklearn.metrics import r2_score
 
 def MAE(y_true, y_pred):
     """ Mean Absolute Error """
-    return np.mean(np.abs((y_true - y_pred)))
+    # print(f'{y_true.shape = }')
+    # print(f'{y_pred.shape = }')
+    # print(f'{(y_true - y_pred).shape = }')
+    return np.mean(np.abs(y_true - y_pred))
 
 def MSE(y_true, y_pred):
     """ Mean Squared Error """ 
@@ -41,9 +44,15 @@ def score(y,
           # path=None, 
           # model='',
           r):
+    # print(f'{y.shape = }')
+    # print(f'{yhat.shape = }')
     if len(yhat.shape) == 3: 
         nsamples, nx, ny = yhat.shape
         yhat = yhat.reshape((nsamples,nx*ny))
+
+    y = np.squeeze(y)
+    yhat = np.squeeze(yhat)
+    
     if r != -1:
         results = [str(np.round(np.float64(metric_dict[key](y, yhat)), r)) for key in metric_dict.keys()]
     else:

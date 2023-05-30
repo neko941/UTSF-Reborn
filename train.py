@@ -48,33 +48,6 @@ def main(opt):
 
     """ Update options """
     opt = update_opt(opt)
-
-    """ Fixed config for testing """
-    # opt.ExtremeGradientBoostingRegression = True
-    # opt.LTSF_NLinear__Tensorflow = True
-    # opt.BiLSTM__Tensorflow = True
-    # opt.machineFilling = 'XGBoost'
-    
-    # opt.dataConfigs = r'.\configs\datasets\salinity-615_csv-lag5-ahead1-offset1.yaml'
-    # opt.granularity = None
-    # opt.startTimeId = None
-
-    # opt.dataConfigs = r'.\configs\datasets\salinity-1_id-split_column.yaml'
-    # opt.granularity = 1440
-    # opt.startTimeId = 0
-
-    # opt.dataConfigs = r'.\configs\datasets\salinity-4_ids-split_column.yaml'
-    # opt.granularity = 1440
-    # opt.startTimeId = 0
-
-    # opt.dataConfigs= r'.\configs\datasets\traffic-1_id-split_column.yaml'
-    # opt.granularity = 5 
-    # opt.startTimeId = 240
-
-    # path = r'.\configs\datasets\weather_history-0_id-no_split_column.yaml'
-    # granularity = 60
-    # startTimeId = 0
-
     shuffle = False
 
     """ Save updated options """
@@ -91,16 +64,9 @@ def main(opt):
                                 offset=opt.offset,
                                 savePath=save_dir,
                                 polarsFilling=opt.polarsFilling,
-                                machineFilling=opt.machineFilling).execute(cyclicalPattern=opt.cyclicalPattern)
+                                machineFilling=opt.machineFilling,
+                                low_memory=opt.low_memory).execute(cyclicalPattern=opt.cyclicalPattern)
     X_train, y_train, X_val, y_val, X_test, y_test = dataset.GetData(shuffle=shuffle)
-
-    # print(X_train.shape)
-    # print(y_train.shape)
-    # print(X_val.shape)
-    # print(y_val.shape)
-    # print(X_test.shape)
-    # print(y_test.shape)
-    # exit()
 
     del dataset
     gc.collect()
@@ -111,6 +77,17 @@ def main(opt):
     [table.add_column(f'[green]{name}', justify='center') for name in ['Name', 'Time', *list(metric_dict.keys())]]
 
     """ Train models """
+    from models.test import build_Baseline_idea1, build_Baseline_idea2, build_Baseline_idea4, build_Baseline_ave, build_Baseline_5ave
+    from utils.metrics import score
+    for f in [build_Baseline_idea1, build_Baseline_idea2, build_Baseline_idea4, build_Baseline_ave, build_Baseline_5ave]:
+        model = f(opt.lag, 1)
+        yhat = model.predict(X_test[:, :, 1:2])
+        scores = score(y=y_test, 
+                         yhat=yhat, 
+                         r=4)
+        table.add_row(f.__name__, '_', *scores)
+        console.print(table)
+
     for item in model_dict:
         if not vars(opt)[f'{item["model"].__name__}']: continue
         datum = train(model=item['model'], 
@@ -168,22 +145,36 @@ def train(model, modelConfigs, data, save_dir, ahead,
               X_val=data[1][0], y_val=data[1][1])
     model.save(file_name=f'{model.__class__.__name__}')
     
+
+    weight=os.path.join(save_dir, 'weights', f"{model.__class__.__name__}_best.h5")
+    if not os.path.exists(weight): weight = model.save(file_name=model.__class__.__name__)
+    else: model.save(save_dir=save_dir, file_name=model.__class__.__name__)
+    # weight = r'runs\exp809\weights\VanillaLSTM__Tensorflow_best.h5'
+    if weight is not None: model.load(weight)
+
     # predict values
-    yhat = model.predict(X=data[2][0][:10_000], name='test')
-    ytrainhat = model.predict(X=data[0][0][:10_000], name='train')
-    yvalhat = model.predict(X=data[1][0][:10_000], name='val')
+    # yhat = model.predict(X=data[2][0][:10_000], name='test')
+    # ytrainhat = model.predict(X=data[0][0][:10_000], name='train')
+    # yvalhat = model.predict(X=data[1][0][:10_000], name='val')
+    yhat = model.predict(X=data[2][0])
+    ytrainhat = model.predict(X=data[0][0])
+    yvalhat = model.predict(X=data[1][0])
 
     # calculate scores
     # print(data[2][1], yhat)
-    scores = model.score(y=data[2][1][:10_000], 
+    scores = model.score(y=data[2][1], 
                          yhat=yhat, 
                          # path=save_dir,
                          r=r)
 
     # plot values
-    model.plot(save_dir=save_dir, y=data[0][1][:10_000], yhat=ytrainhat, dataset='Train')
-    model.plot(save_dir=save_dir, y=data[1][1][:10_000], yhat=yvalhat, dataset='Val')
-    model.plot(save_dir=save_dir, y=data[2][1][:10_000], yhat=yhat, dataset='Test')
+    model.plot(save_dir=save_dir, y=data[0][1], yhat=ytrainhat, dataset='Train')
+    model.plot(save_dir=save_dir, y=data[1][1], yhat=yvalhat, dataset='Val')
+    model.plot(save_dir=save_dir, y=data[2][1], yhat=yhat, dataset='Test')
+
+    model.plot(save_dir=save_dir, y=data[0][1][:100], yhat=ytrainhat[:100], dataset='Train100')
+    model.plot(save_dir=save_dir, y=data[1][1][:100], yhat=yvalhat[:100], dataset='Val100')
+    model.plot(save_dir=save_dir, y=data[2][1][:100], yhat=yhat[:100], dataset='Test100')
 
     return [model.__class__.__name__, model.time_used, *scores]
 

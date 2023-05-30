@@ -141,22 +141,30 @@ class MachineLearningModel(BaseModel):
     
     def build(self): pass
 
-    def preprocessing(self, x):
-        return [i.flatten() for i in x]
+    def preprocessing(self, x, classifier=False):
+        if classifier: res = [i.flatten().astype(int) for i in x]
+        else: res = [i.flatten() for i in x]
+        # if classifier: res = x.flatten().astype(int)
+        # else: res = x.flatten()
+        return res
 
     def fit(self, X_train, y_train, **kwargs):
-        vectorized = np.vectorize(self.preprocessing)
         start = time.time()
-        if self.is_classifier:
-            y_train = np.ravel([i.astype(int) for i in vectorized(y_train)], order='C') 
-        else:
-            y_train = np.ravel(vectorized(y_train), order='C')
-        self.model.fit(X=vectorized(X_train), 
+        # if self.is_classifier:
+        #     y_train = np.ravel(vectorized(y_train, True), order='C') 
+        # else:
+        #     y_train = np.ravel(vectorized(y_train, False), order='C')
+        y_train = np.ravel(self.preprocessing(y_train, self.is_classifier), order='C') 
+        x_train = self.preprocessing(X_train)
+        # vectorized = np.vectorize(self.preprocessing)
+        # y_train = np.ravel(vectorized(y_train, self.is_classifier), order='C')
+        # x_train = vectorized(X_train)
+        self.model.fit(X=x_train, 
                        y=y_train)
         self.time_used = convert_seconds(time.time() - start)
     
     def save(self, file_name:str, extension:str='.pkl'):
-        file_path = os.path.join(self.path_weight, file_name+extension)
+        file_path = Path(self.path_weight, f'{file_name}{extension}')
         pickle.dump(self.model, open(Path(file_path).absolute(), "wb"))
         return file_path
 
@@ -164,8 +172,15 @@ class MachineLearningModel(BaseModel):
         if not os.path.exists(weight): pass
         self.model = pickle.load(open(weight, "rb"))
 
-    def predict(self, X):
-        return self.model.predict(self.preprocessing(x=X)) 
+    def predict(self, X, save=True):
+        yhat = self.model.predict(self.preprocessing(x=X))
+        if save: 
+            filename = self.path_value / f'yhat-{self.__class__.__name__}.npy'
+            np.save(file=filename, 
+                    arr=yhat, 
+                    allow_pickle=True, 
+                    fix_imports=True)
+        return yhat
 
 from tensorflow.keras.utils import Sequence 
 
@@ -299,8 +314,14 @@ class TensorflowModel(BaseModel):
                       xlabel='Epoch',
                       ylabel='Loss Value')
 
-    def predict(self, X, name=''):
-        # filename = self.path_value / f'yhat{name}-{self.__class__.__name__}.npy'
+    def predict(self, X, save=True):
+        yhat = self.model.predict(X, verbose=0)
+        if save:
+            filename = self.path_value / f'yhat-{self.__class__.__name__}.npy'
+            np.save(file=filename, 
+                    arr=yhat, 
+                    allow_pickle=True, 
+                    fix_imports=True)
         # # vectorized = np.vectorize(self.model.predict)
         # with self.ProgressBar() as progress:
         #     with NpyFileAppend(filename, delete_if_exists=True) as npfa:
@@ -308,7 +329,7 @@ class TensorflowModel(BaseModel):
         #             # print(X.shape, x.shape)
         #             npfa.append(self.model.predict(x[np.newaxis, :], verbose=0))
         # return np.load(file=filename, mmap_mode='r')
-        return self.model.predict(X, verbose=0)
+        return yhat
     
     def save(self, file_name:str, extension:str='.h5'):
         self.model.save_weights(Path(self.path_weight, file_name, f'{file_name}{extension}'))

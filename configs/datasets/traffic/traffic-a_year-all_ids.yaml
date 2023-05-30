@@ -1,4 +1,4 @@
-data: .\data\raw\traffic\a_year
+data: .\data\raw\traffic\a_year-by_id-new
 target: speed
 date: date
 features: kml_segment_id

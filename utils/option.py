@@ -1,8 +1,11 @@
 import argparse
 
+from models.MachineLearning import LinearRegression_
 from models.MachineLearning import ExtremeGradientBoostingRegression
 
+from models.RNN import BiRNN__Tensorflow
 from models.LSTM import BiLSTM__Tensorflow
+from models.RNN import VanillaRNN__Tensorflow
 from models.LSTM import VanillaLSTM__Tensorflow
 from models.LTSF_Linear import LTSF_Linear__Tensorflow
 from models.LTSF_Linear import LTSF_NLinear__Tensorflow
@@ -10,12 +13,30 @@ from models.LTSF_Linear import LTSF_DLinear__Tensorflow
 from models.Transformer import VanillaTransformer__Tensorflow
 
 model_dict = [
-    { 
+    {
+        'model'  : LinearRegression_,
+        'help'   : '',
+        'type'   : 'MachineLearning',
+        'config' : r'.\configs\models\MachineLearning\LinearRegression.yaml',
+        'alias'  : ['XGBoost']
+    },{ 
         'model'  : ExtremeGradientBoostingRegression,
         'help'   : '',
         'type'   : 'MachineLearning',
         'config' : r'.\configs\models\MachineLearning\ExtremeGradientBoostingRegression.yaml',
         'alias'  : ['XGBoost']
+    },{
+        'model'  : VanillaRNN__Tensorflow,
+        'help'   : '',
+        'type'   : 'Tensorflow',
+        'config' : r'.\configs\models\DeepLearning\VanillaRNN__Tensorflow.yaml',
+        'alias'  : []
+    },{ 
+        'model'  : BiRNN__Tensorflow,
+        'help'   : '',
+        'type'   : 'Tensorflow',
+        'config' : r'.\configs\models\DeepLearning\BiRNN__Tensorflow.yaml',
+        'alias'  : []
     },{ 
         'model'  : VanillaLSTM__Tensorflow,
         'help'   : '',
@@ -85,6 +106,7 @@ def parse_opt(ROOT, known=False):
     parser.add_argument('--debug', action='store_true', help='print debug information in table')
     parser.add_argument('--multimodels', action='store_true', help='split data of n segment ids for n models ')
     parser.add_argument('--workers', type=int, default=8, help='')
+    parser.add_argument('--low_memory', action='store_true', help='Ultilize disk')
 
     parser.add_argument('--dirFeatureName', type=str, default='dir', help='')
     parser.add_argument('--device', default='', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
