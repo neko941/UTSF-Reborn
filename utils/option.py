@@ -85,7 +85,8 @@ def parse_opt(ROOT, known=False):
     parser.add_argument('--ahead', type=int, default=1, help='')
     parser.add_argument('--offset', type=int, default=1, help='')
     parser.add_argument('--trainsz', type=float, default=0.7, help='')
-    parser.add_argument('--valsz', type=float, default=0.2, help='')
+    parser.add_argument('--valsz', type=float, default=0.1, help='')
+    parser.add_argument('--resample', type=int, default=5, help='')
 
     # parser.add_argument('--granularity', type=int, default=1, help='by minutes')
     # parser.add_argument('--startTimeId', type=int, default=0, help='by minutes')

@@ -55,7 +55,7 @@ def main(opt):
 
     """ Preprocessing dataset """
     dataset = DatasetController(configsPath=opt.dataConfigs,
-                                # granularity=opt.granularity,
+                                resample=opt.resample,
                                 # startTimeId=opt.startTimeId,
                                 splitRatio=(opt.trainsz, opt.valsz, 1-opt.trainsz-opt.valsz),
                                 workers=opt.workers,
