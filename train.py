@@ -77,16 +77,59 @@ def main(opt):
     [table.add_column(f'[green]{name}', justify='center') for name in ['Name', 'Time', *list(metric_dict.keys())]]
 
     """ Train models """
-    from models.test import build_Baseline_idea1, build_Baseline_idea2, build_Baseline_idea4, build_Baseline_ave, build_Baseline_5ave
-    from utils.metrics import score
-    for f in [build_Baseline_idea1, build_Baseline_idea2, build_Baseline_idea4, build_Baseline_ave, build_Baseline_5ave]:
-        model = f(opt.lag, 1)
-        yhat = model.predict(X_test[:, :, 1:2])
-        scores = score(y=y_test, 
-                         yhat=yhat, 
-                         r=4)
-        table.add_row(f.__name__, '_', *scores)
-        console.print(table)
+    # from models.test import build_Baseline_idea1, build_Baseline_idea2, build_Baseline_idea4, build_Baseline_ave, build_Baseline_5ave, build_Bi_LSTSM
+    # from models.test import build_Bi_LSTSM
+    # from utils.metrics import score
+    # for f in [build_Baseline_idea1, build_Baseline_idea2, build_Baseline_idea4, build_Baseline_ave, build_Baseline_5ave]:
+    #     model = f(opt.lag, 1)
+    #     yhat = model.predict(X_test[:, :, 1:2])
+    #     scores = score(y=y_test, 
+    #                      yhat=yhat, 
+    #                      r=4)
+    #     table.add_row(f.__name__, '0s', *scores)
+    #     console.print(table)
+    # import time
+    # from keras.optimizers import Adam
+    # from keras.losses import MeanSquaredError
+    # from tensorflow.keras.utils import Sequence 
+    # from keras.callbacks import EarlyStopping
+    # from keras.callbacks import ReduceLROnPlateau
+    # from utils.general import convert_seconds
+    # class DataGenerator(Sequence):
+    #     def __init__(self, x, y, batchsz):
+    #         self.x, self.y = x, y
+    #         self.batch_size = batchsz
+
+    #     def __len__(self):
+    #         return int(np.ceil(len(self.x) / float(self.batch_size)))
+
+    #     def __getitem__(self, idx):
+    #         batch_x = self.x[idx * self.batch_size:(idx + 1) * self.batch_size]
+    #         batch_y = self.y[idx * self.batch_size:(idx + 1) * self.batch_size]
+    #         return batch_x, batch_y
+    # model = build_Bi_LSTSM(seed=opt.seed, input_len=opt.lag, predict_len=opt.ahead, chanels=2)
+    # start = time.time()
+    # model.compile(optimizer=Adam(learning_rate=opt.lr), loss=MeanSquaredError())
+    # min_delta = 0.001
+    # history = model.fit(DataGenerator(x=X_train, y=y_train, batchsz=opt.batchsz), 
+    #                               validation_data=DataGenerator(x=X_val, y=y_val, batchsz=opt.batchsz),
+    #                               epochs=opt.epochs,
+    #                               callbacks=[EarlyStopping(monitor='val_loss', patience=opt.patience, min_delta=min_delta),
+    #                                          ReduceLROnPlateau(monitor='val_loss',
+    #                                                            factor=0.1,
+    #                                                            patience=opt.patience / 5,
+    #                                                            verbose=0,
+    #                                                            mode='auto',
+    #                                                            min_delta=min_delta * 10,
+    #                                                            cooldown=0,
+    #                                                            min_lr=0)])
+    # time_used = convert_seconds(time.time() - start)
+    # yhat = model.predict(X_test)
+    # scores = score(y=y_test, 
+    #                  yhat=yhat, 
+    #                  r=4)
+    # table.add_row('BiLSTM', time_used, *scores)
+    # console.print(table)
 
     for item in model_dict:
         if not vars(opt)[f'{item["model"].__name__}']: continue

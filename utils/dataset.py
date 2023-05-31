@@ -296,12 +296,12 @@ class DatasetController():
                 self.dataFilePaths.append(i)
         assert len(self.dataFilePaths) > 0, 'No csv file(s)'
         # t = [48]
-        t = [5583,8602,9235,7107,8062,600,599,499,5989,8604,8318,3302,8065,2715,4879,2636,942,4166,5402,8256,5296,6829,9270,9064,3237,9231,3806,7877,8683,9233,7593,9234,6226,1256,6228,8822,3651,5988,6828,7696,7148,6666,7259,7320,1257,3303,3665,3805,8300,3650,6225,8948,7321,8947,6619,8319,6997,48,7875,8063,7694,4878,8697,8821,5150,446,2635,7258,4165,7594,9272,47,1258,3666,308,4831,8497,4269,8603,7878,3664,8061,5582,6667,5404,6665,6826,974,7695,7109,8498,2561,8900,309,445,5405,5990,6227,6827,8605,9096,9271,8901,9269,8255,2637,7876,5403,8902,9063,6618,49,8317,3238,8824,4732,9236,6350,7257,6617,4731,6406,7595,4270,2560,7140,4927,7108,8946,4272,4167,9353,9062,941,8682,8066,4271,4168,4832,4834,6996,8606,8823,8064,9232,1989,4928,6349,765,975,4833,9352]
-        self.dataFilePaths = [os.path.abspath(csv) for csv in list_convert(self.dataFilePaths) if int(os.path.basename(csv).split('.')[0]) in t]
-        # self.dataFilePaths = [os.path.abspath(csv) for csv in list_convert(self.dataFilePaths)]
-        # import random
-        # random.shuffle(self.dataFilePaths)
-        # self.dataFilePaths = self.dataFilePaths[:150]
+        # t = [5583,8602,9235,7107,8062,600,599,499,5989,8604,8318,3302,8065,2715,4879,2636,942,4166,5402,8256,5296,6829,9270,9064,3237,9231,3806,7877,8683,9233,7593,9234,6226,1256,6228,8822,3651,5988,6828,7696,7148,6666,7259,7320,1257,3303,3665,3805,8300,3650,6225,8948,7321,8947,6619,8319,6997,48,7875,8063,7694,4878,8697,8821,5150,446,2635,7258,4165,7594,9272,47,1258,3666,308,4831,8497,4269,8603,7878,3664,8061,5582,6667,5404,6665,6826,974,7695,7109,8498,2561,8900,309,445,5405,5990,6227,6827,8605,9096,9271,8901,9269,8255,2637,7876,5403,8902,9063,6618,49,8317,3238,8824,4732,9236,6350,7257,6617,4731,6406,7595,4270,2560,7140,4927,7108,8946,4272,4167,9353,9062,941,8682,8066,4271,4168,4832,4834,6996,8606,8823,8064,9232,1989,4928,6349,765,975,4833,9352]
+        # self.dataFilePaths = [os.path.abspath(csv) for csv in list_convert(self.dataFilePaths) if int(os.path.basename(csv).split('.')[0]) in t]
+        self.dataFilePaths = [os.path.abspath(csv) for csv in list_convert(self.dataFilePaths)]
+        import random
+        random.shuffle(self.dataFilePaths)
+        self.dataFilePaths = self.dataFilePaths[:150]
         # print(self.dataFilePaths)
 
     def ProgressBar(self):
@@ -443,6 +443,8 @@ class DatasetController():
         # else: 
         #     self.df = self.TimeEncoder(df=self.df).drop_nulls()
         self.df = self.TimeEncoder(df=self.df)
+        # pass
+        
 
     def FillDate(self, df=None, low=None, high=None, granularity=None): 
         if not self.dateFeature: return
@@ -715,15 +717,19 @@ class DatasetController():
         sample_time = f'{digit}min'
         pd_time = 'm'
 
+        weekday_list = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+        weekday_dict = {k:weekday_list[k-1] for k in range(1,8)}
+
         self.SortDataset()
         if self.df is not None: self.df.write_csv(save_dir / 'data_processed.csv')
         pl_dataframe = pl.read_csv(save_dir / 'data_processed.csv', try_parse_dates=True)
+        # pl_dataframe = pl.read_csv(save_dir / 'data_processed.csv', try_parse_dates=True, low_memory=self.low_memory)
         # pl_dataframe = pl.read_csv(r"E:\01.Code\00.Github\UTSF-Reborn\runs\exp141\values\data_processed.csv", try_parse_dates=True)
         pl_dataframe = self.ReduceMemoryUsage(df=pl_dataframe, info=True)
         # print(pl_dataframe); exit()
 
         # LIST_FEATURE = [target_col_name, 'roll'] 
-        LIST_FEATURE = [target_col_name] 
+        LIST_FEATURE = [target_col_name, 'hour_sin', 'hour_cos', 'day_sin', 'day_cos', 'month_sin', 'month_cos'] 
         FINAL_LIST_FEATURE = []
         for ft_l in LIST_FEATURE:
             for i in range(0, lag_window):
@@ -782,11 +788,38 @@ class DatasetController():
 
 
                 #########################################################
-                # Feature engienering
+                # Feature engienerin
+                
+                # =======================================================================================
                 pd_df = pl.from_pandas(pd_df)
-                
-                
-                
+                        
+                # print_color('Step2: Generate time related feature engineering')
+                pd_df = pd_df.with_columns(
+                                        pl.lit(id_, dtype=pl.Float64).alias('ID'),
+                                        pl.col(time_col_name).dt.hour().alias('hour_id')
+                                    )
+
+
+                pd_df = pd_df.with_columns(   
+                    pl.col(time_col_name).dt.weekday().apply(lambda x: weekday_dict[x]).alias('weekday')
+                ) 
+
+
+                pd_df = pd_df.with_columns(
+                    pl.col(time_col_name).dt.weekday().alias('weekday'),
+                    pl.col(time_col_name).dt.month().alias('month'),
+                    ((pl.col(time_col_name).dt.hour()*60 + pl.col(time_col_name).dt.minute())/digit).alias(f'{digit}mins_hour'),
+                )
+
+                pd_df = pd_df.with_columns(
+                    ((pl.col(f'{digit}mins_hour')/(24*(60/digit))*2*np.pi).sin()).alias('hour_sin'), # 0 to 23 -> 23h55
+                    ((pl.col(f'{digit}mins_hour')/(24*(60/digit))*2*np.pi).cos()).alias('hour_cos'), # 0 to 23 -> 23h55
+                    ((pl.col('weekday')/(7)*2*np.pi).sin()).alias('day_sin'), # 1 - 7
+                    ((pl.col('weekday')/(7)*2*np.pi).cos()).alias('day_cos'), # 1 -  7
+                    ((pl.col('month')/(12)*2*np.pi).sin()).alias('month_sin'), # 1 -12
+                    ((pl.col('month')/(12)*2*np.pi).cos()).alias('month_cos') # 1-12
+                )
+
                 pd_df = pd_df[LIST_FEATURE + [time_col_name]].to_pandas()
                 # pd_df.to_csv('47_only.csv')
                 # sub_pl_dataframe.to_csv('47_only_polar.csv')
@@ -794,9 +827,10 @@ class DatasetController():
                 ##########################################################
                 # Get train/val/test (remove invalid training time series data)
                 # time as index, ID and speed columns
-                
+
                 pd_df = pd_df.set_index(time_col_name)
-                
+                # =======================================================================================
+
                 for ft in LIST_FEATURE:
                     for i in range(1, lag_window):
                         pd_df = pd_df.merge(pd_df[ft].shift(i, freq=sample_time),
