@@ -172,8 +172,13 @@ class MachineLearningModel(BaseModel):
         if not os.path.exists(weight): pass
         self.model = pickle.load(open(weight, "rb"))
 
-    def predict(self, X, save=True):
+    def predict(self, X, save=True, scaler=None):
         yhat = self.model.predict(self.preprocessing(x=X))
+        if scaler is not None: 
+            yhat = yhat * (scaler['max'] - scaler['min']) +  scaler['min']
+            # print(yhat.shape)
+            # yhat = yhat * (scaler[0]['max'] - scaler[0]['min']) +  scaler[0]['min']
+            
         if save: 
             filename = self.path_value / f'yhat-{self.__class__.__name__}.npy'
             np.save(file=filename, 
@@ -314,8 +319,10 @@ class TensorflowModel(BaseModel):
                       xlabel='Epoch',
                       ylabel='Loss Value')
 
-    def predict(self, X, save=True):
+    def predict(self, X, save=True, scaler=None):
         yhat = self.model.predict(X, verbose=0)
+        if scaler is not None: 
+            yhat = (yhat - scaler['min']) / (scaler['max'] - scaler['min'])
         if save:
             filename = self.path_value / f'yhat-{self.__class__.__name__}.npy'
             np.save(file=filename, 

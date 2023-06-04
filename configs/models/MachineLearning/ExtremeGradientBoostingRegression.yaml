@@ -74,7 +74,7 @@ alpha: 0
 # default: 0
 # options:
 
-tree_method: "auto"
+tree_method: "gpu_hist"
 # description: the tree construction algorithm used in XGBoost
 # default: 'auto'
 # options:

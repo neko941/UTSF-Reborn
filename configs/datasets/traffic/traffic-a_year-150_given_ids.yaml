@@ -1,0 +1,175 @@
+data: 
+  - .\data\raw\traffic\a_year-by_id-new\1256.csv
+  - .\data\raw\traffic\a_year-by_id-new\1257.csv
+  - .\data\raw\traffic\a_year-by_id-new\1258.csv
+  - .\data\raw\traffic\a_year-by_id-new\1989.csv
+  - .\data\raw\traffic\a_year-by_id-new\2560.csv
+  - .\data\raw\traffic\a_year-by_id-new\2561.csv
+  - .\data\raw\traffic\a_year-by_id-new\2635.csv
+  - .\data\raw\traffic\a_year-by_id-new\2636.csv
+  - .\data\raw\traffic\a_year-by_id-new\2637.csv
+  - .\data\raw\traffic\a_year-by_id-new\2715.csv
+  - .\data\raw\traffic\a_year-by_id-new\308.csv
+  - .\data\raw\traffic\a_year-by_id-new\309.csv
+  - .\data\raw\traffic\a_year-by_id-new\3237.csv
+  - .\data\raw\traffic\a_year-by_id-new\3238.csv
+  - .\data\raw\traffic\a_year-by_id-new\3302.csv
+  - .\data\raw\traffic\a_year-by_id-new\3303.csv
+  - .\data\raw\traffic\a_year-by_id-new\3650.csv
+  - .\data\raw\traffic\a_year-by_id-new\3651.csv
+  - .\data\raw\traffic\a_year-by_id-new\3664.csv
+  - .\data\raw\traffic\a_year-by_id-new\3665.csv
+  - .\data\raw\traffic\a_year-by_id-new\3666.csv
+  - .\data\raw\traffic\a_year-by_id-new\3805.csv
+  - .\data\raw\traffic\a_year-by_id-new\3806.csv
+  - .\data\raw\traffic\a_year-by_id-new\4165.csv
+  - .\data\raw\traffic\a_year-by_id-new\4166.csv
+  - .\data\raw\traffic\a_year-by_id-new\4167.csv
+  - .\data\raw\traffic\a_year-by_id-new\4168.csv
+  - .\data\raw\traffic\a_year-by_id-new\4269.csv
+  - .\data\raw\traffic\a_year-by_id-new\4270.csv
+  - .\data\raw\traffic\a_year-by_id-new\4271.csv
+  - .\data\raw\traffic\a_year-by_id-new\4272.csv
+  - .\data\raw\traffic\a_year-by_id-new\445.csv
+  - .\data\raw\traffic\a_year-by_id-new\446.csv
+  - .\data\raw\traffic\a_year-by_id-new\47.csv
+  - .\data\raw\traffic\a_year-by_id-new\4731.csv
+  - .\data\raw\traffic\a_year-by_id-new\4732.csv
+  - .\data\raw\traffic\a_year-by_id-new\48.csv
+  - .\data\raw\traffic\a_year-by_id-new\4831.csv
+  - .\data\raw\traffic\a_year-by_id-new\4832.csv
+  - .\data\raw\traffic\a_year-by_id-new\4833.csv
+  - .\data\raw\traffic\a_year-by_id-new\4834.csv
+  - .\data\raw\traffic\a_year-by_id-new\4878.csv
+  - .\data\raw\traffic\a_year-by_id-new\4879.csv
+  - .\data\raw\traffic\a_year-by_id-new\49.csv
+  - .\data\raw\traffic\a_year-by_id-new\4927.csv
+  - .\data\raw\traffic\a_year-by_id-new\4928.csv
+  - .\data\raw\traffic\a_year-by_id-new\499.csv
+  - .\data\raw\traffic\a_year-by_id-new\5150.csv
+  - .\data\raw\traffic\a_year-by_id-new\5296.csv
+  - .\data\raw\traffic\a_year-by_id-new\5402.csv
+  - .\data\raw\traffic\a_year-by_id-new\5403.csv
+  - .\data\raw\traffic\a_year-by_id-new\5404.csv
+  - .\data\raw\traffic\a_year-by_id-new\5405.csv
+  - .\data\raw\traffic\a_year-by_id-new\5582.csv
+  - .\data\raw\traffic\a_year-by_id-new\5583.csv
+  - .\data\raw\traffic\a_year-by_id-new\5988.csv
+  - .\data\raw\traffic\a_year-by_id-new\5989.csv
+  - .\data\raw\traffic\a_year-by_id-new\599.csv
+  - .\data\raw\traffic\a_year-by_id-new\5990.csv
+  - .\data\raw\traffic\a_year-by_id-new\600.csv
+  - .\data\raw\traffic\a_year-by_id-new\6225.csv
+  - .\data\raw\traffic\a_year-by_id-new\6226.csv
+  - .\data\raw\traffic\a_year-by_id-new\6227.csv
+  - .\data\raw\traffic\a_year-by_id-new\6228.csv
+  - .\data\raw\traffic\a_year-by_id-new\6349.csv
+  - .\data\raw\traffic\a_year-by_id-new\6350.csv
+  - .\data\raw\traffic\a_year-by_id-new\6406.csv
+  - .\data\raw\traffic\a_year-by_id-new\6617.csv
+  - .\data\raw\traffic\a_year-by_id-new\6618.csv
+  - .\data\raw\traffic\a_year-by_id-new\6619.csv
+  - .\data\raw\traffic\a_year-by_id-new\6665.csv
+  - .\data\raw\traffic\a_year-by_id-new\6666.csv
+  - .\data\raw\traffic\a_year-by_id-new\6667.csv
+  - .\data\raw\traffic\a_year-by_id-new\6826.csv
+  - .\data\raw\traffic\a_year-by_id-new\6827.csv
+  - .\data\raw\traffic\a_year-by_id-new\6828.csv
+  - .\data\raw\traffic\a_year-by_id-new\6829.csv
+  - .\data\raw\traffic\a_year-by_id-new\6996.csv
+  - .\data\raw\traffic\a_year-by_id-new\6997.csv
+  - .\data\raw\traffic\a_year-by_id-new\7107.csv
+  - .\data\raw\traffic\a_year-by_id-new\7108.csv
+  - .\data\raw\traffic\a_year-by_id-new\7109.csv
+  - .\data\raw\traffic\a_year-by_id-new\7140.csv
+  - .\data\raw\traffic\a_year-by_id-new\7148.csv
+  - .\data\raw\traffic\a_year-by_id-new\7257.csv
+  - .\data\raw\traffic\a_year-by_id-new\7258.csv
+  - .\data\raw\traffic\a_year-by_id-new\7259.csv
+  - .\data\raw\traffic\a_year-by_id-new\7320.csv
+  - .\data\raw\traffic\a_year-by_id-new\7321.csv
+  - .\data\raw\traffic\a_year-by_id-new\7593.csv
+  - .\data\raw\traffic\a_year-by_id-new\7594.csv
+  - .\data\raw\traffic\a_year-by_id-new\7595.csv
+  - .\data\raw\traffic\a_year-by_id-new\765.csv
+  - .\data\raw\traffic\a_year-by_id-new\7694.csv
+  - .\data\raw\traffic\a_year-by_id-new\7695.csv
+  - .\data\raw\traffic\a_year-by_id-new\7696.csv
+  - .\data\raw\traffic\a_year-by_id-new\7875.csv
+  - .\data\raw\traffic\a_year-by_id-new\7876.csv
+  - .\data\raw\traffic\a_year-by_id-new\7877.csv
+  - .\data\raw\traffic\a_year-by_id-new\7878.csv
+  - .\data\raw\traffic\a_year-by_id-new\8061.csv
+  - .\data\raw\traffic\a_year-by_id-new\8062.csv
+  - .\data\raw\traffic\a_year-by_id-new\8063.csv
+  - .\data\raw\traffic\a_year-by_id-new\8064.csv
+  - .\data\raw\traffic\a_year-by_id-new\8065.csv
+  - .\data\raw\traffic\a_year-by_id-new\8066.csv
+  - .\data\raw\traffic\a_year-by_id-new\8255.csv
+  - .\data\raw\traffic\a_year-by_id-new\8256.csv
+  - .\data\raw\traffic\a_year-by_id-new\8300.csv
+  - .\data\raw\traffic\a_year-by_id-new\8317.csv
+  - .\data\raw\traffic\a_year-by_id-new\8318.csv
+  - .\data\raw\traffic\a_year-by_id-new\8319.csv
+  - .\data\raw\traffic\a_year-by_id-new\8497.csv
+  - .\data\raw\traffic\a_year-by_id-new\8498.csv
+  - .\data\raw\traffic\a_year-by_id-new\8602.csv
+  - .\data\raw\traffic\a_year-by_id-new\8603.csv
+  - .\data\raw\traffic\a_year-by_id-new\8604.csv
+  - .\data\raw\traffic\a_year-by_id-new\8605.csv
+  - .\data\raw\traffic\a_year-by_id-new\8606.csv
+  - .\data\raw\traffic\a_year-by_id-new\8682.csv
+  - .\data\raw\traffic\a_year-by_id-new\8683.csv
+  - .\data\raw\traffic\a_year-by_id-new\8697.csv
+  - .\data\raw\traffic\a_year-by_id-new\8821.csv
+  - .\data\raw\traffic\a_year-by_id-new\8822.csv
+  - .\data\raw\traffic\a_year-by_id-new\8823.csv
+  - .\data\raw\traffic\a_year-by_id-new\8824.csv
+  - .\data\raw\traffic\a_year-by_id-new\8900.csv
+  - .\data\raw\traffic\a_year-by_id-new\8901.csv
+  - .\data\raw\traffic\a_year-by_id-new\8902.csv
+  - .\data\raw\traffic\a_year-by_id-new\8946.csv
+  - .\data\raw\traffic\a_year-by_id-new\8947.csv
+  - .\data\raw\traffic\a_year-by_id-new\8948.csv
+  - .\data\raw\traffic\a_year-by_id-new\9062.csv
+  - .\data\raw\traffic\a_year-by_id-new\9063.csv
+  - .\data\raw\traffic\a_year-by_id-new\9064.csv
+  - .\data\raw\traffic\a_year-by_id-new\9096.csv
+  - .\data\raw\traffic\a_year-by_id-new\9231.csv
+  - .\data\raw\traffic\a_year-by_id-new\9232.csv
+  - .\data\raw\traffic\a_year-by_id-new\9233.csv
+  - .\data\raw\traffic\a_year-by_id-new\9234.csv
+  - .\data\raw\traffic\a_year-by_id-new\9235.csv
+  - .\data\raw\traffic\a_year-by_id-new\9236.csv
+  - .\data\raw\traffic\a_year-by_id-new\9269.csv
+  - .\data\raw\traffic\a_year-by_id-new\9270.csv
+  - .\data\raw\traffic\a_year-by_id-new\9271.csv
+  - .\data\raw\traffic\a_year-by_id-new\9272.csv
+  - .\data\raw\traffic\a_year-by_id-new\9352.csv
+  - .\data\raw\traffic\a_year-by_id-new\9353.csv
+  - .\data\raw\traffic\a_year-by_id-new\941.csv
+  - .\data\raw\traffic\a_year-by_id-new\942.csv
+  - .\data\raw\traffic\a_year-by_id-new\974.csv
+  - .\data\raw\traffic\a_year-by_id-new\975.csv
+target: speed
+date: date
+features: kml_segment_id
+time_id: time_id
+start_time_id: 240
+delimiter: "|"
+split_feature: kml_segment_id
+dir_as_feature: 0
+split_dir_feature: 0
+granularity: 5
+time_format: 
+
+year_start:
+year_end:
+month_start:
+month_end:
+day_start:
+day_end:
+hour_start: 4
+hour_end: 23
+minute_start:
+minute_end:

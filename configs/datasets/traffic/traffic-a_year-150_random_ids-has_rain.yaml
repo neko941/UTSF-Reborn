@@ -1,0 +1,175 @@
+data: 
+  - .\data\raw\traffic\a_year-by_id-has_rain\9194.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\1484.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\9265.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\9605.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\2130.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\4356.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\9352.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\1066.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\2227.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\380.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\659.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\9363.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\2755.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\1796.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\5280.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\4001.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\8951.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\1075.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\6296.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\664.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\2765.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\4917.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\1137.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\6185.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\6123.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\5712.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\8040.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\1453.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\8014.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\2088.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\1963.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\7180.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\4475.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\3335.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\2118.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\8858.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\2371.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\2548.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\208.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\3598.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\3939.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\8075.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\5397.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\3565.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\4922.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\203.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\3873.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\874.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\5697.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\6540.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\9695.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\7941.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\2834.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\61.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\8297.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\4427.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\4496.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\1520.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\4861.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\6166.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\9500.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\363.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\3708.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\8387.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\5574.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\9304.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\4429.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\7455.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\3458.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\3867.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\332.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\313.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\1850.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\691.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\7473.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\937.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\7397.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\2420.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\6968.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\6266.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\8510.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\3558.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\5047.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\4855.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\7721.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\7815.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\7453.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\1660.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\3113.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\1649.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\5100.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\399.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\3475.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\5595.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\4543.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\3243.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\8413.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\1289.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\2311.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\7499.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\4465.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\7503.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\8198.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\9235.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\8582.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\5042.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\9371.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\4098.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\8045.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\4112.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\1630.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\1026.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\2215.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\8913.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\2050.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\8568.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\7477.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\962.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\3403.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\7857.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\9258.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\2352.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\8618.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\7134.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\48.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\5269.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\4854.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\264.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\2034.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\7020.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\5787.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\9389.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\9633.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\7936.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\8673.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\2489.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\9444.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\3353.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\8847.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\3334.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\4810.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\5912.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\9436.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\5378.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\6625.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\5453.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\1334.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\8285.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\4194.csv
+  - .\data\raw\traffic\a_year-by_id-has_rain\6686.csv
+target: speed
+date: date
+features: 
+  - kml_segment_id
+  - rain
+time_id: time_id
+start_time_id: 240
+delimiter: "|"
+split_feature: kml_segment_id
+dir_as_feature: 0
+split_dir_feature: 0
+granularity: 5
+time_format: 
+
+year_start:
+year_end:
+month_start:
+month_end:
+day_start:
+day_end:
+hour_start: 4
+hour_end: 23
+minute_start:
+minute_end:

@@ -11,6 +11,7 @@ import absl.logging
 absl.logging.set_verbosity(absl.logging.ERROR) # disable absl INFO and WARNING log messages
 
 import gc
+import shutil
 import numpy as np
 import matplotlib.pyplot as plt 
 from utils.dataset import DatasetController
@@ -37,6 +38,10 @@ def main(opt):
     """ Get the save directory for this run """
     save_dir = str(increment_path(Path(opt.project) / opt.name, overwrite=opt.overwrite, mkdir=True))
 
+    """ Path to save configs """
+    path_configs = Path(save_dir, 'configs')
+    path_configs.mkdir(parents=True, exist_ok=True)
+
     """ Set seed """
     opt.seed = set_seed(opt.seed)
 
@@ -44,14 +49,14 @@ def main(opt):
     get_custom_activations()
 
     """ Save init options """
-    yaml_save(os.path.join(save_dir, 'opt.yaml'), vars(opt))
+    yaml_save(path_configs / 'opt.yaml', vars(opt))
 
     """ Update options """
     opt = update_opt(opt)
     shuffle = False
 
     """ Save updated options """
-    yaml_save(os.path.join(save_dir, 'updated_opt.yaml'), vars(opt))
+    yaml_save(path_configs / 'updated_opt.yaml', vars(opt))
 
     """ Preprocessing dataset """
     dataset = DatasetController(configsPath=opt.dataConfigs,
@@ -65,8 +70,10 @@ def main(opt):
                                 savePath=save_dir,
                                 polarsFilling=opt.polarsFilling,
                                 machineFilling=opt.machineFilling,
-                                low_memory=opt.low_memory).execute(cyclicalPattern=opt.cyclicalPattern)
+                                low_memory=opt.low_memory,
+                                normalization=opt.normalization).execute(cyclicalPattern=opt.cyclicalPattern)
     X_train, y_train, X_val, y_val, X_test, y_test = dataset.GetData(shuffle=shuffle)
+    scaler = dataset.scaler
 
     del dataset
     gc.collect()
@@ -133,6 +140,7 @@ def main(opt):
 
     for item in model_dict:
         if not vars(opt)[f'{item["model"].__name__}']: continue
+        shutil.copyfile(item['config'], path_configs/os.path.basename(item['config']))
         datum = train(model=item['model'], 
                       modelConfigs=item['config'], 
                       data=[[X_train, y_train], [X_val, y_val], [X_test, y_test]], 
@@ -147,7 +155,8 @@ def main(opt):
                       loss=opt.loss,
                       batchsz=opt.batchsz,
                       r=opt.round,
-                      enc_in=1)
+                      enc_in=1,
+                      scaler=scaler)
         table.add_row(*datum)
         console.print(table)
         console.save_svg(os.path.join(save_dir, 'results.svg'), theme=MONOKAI)  
@@ -163,7 +172,8 @@ def train(model, modelConfigs, data, save_dir, ahead,
           loss:str = 'MSE',
           batchsz:int = 64,
           r: int = 4,
-          enc_in: int = 1) -> list:
+          enc_in: int = 1,
+          scaler = None) -> list:
     # import tensorflow as tf
     # model = tf.keras.models.load_model('VanillaLSTM__Tensorflow')
     # model.summary()
@@ -199,12 +209,14 @@ def train(model, modelConfigs, data, save_dir, ahead,
     # yhat = model.predict(X=data[2][0][:10_000], name='test')
     # ytrainhat = model.predict(X=data[0][0][:10_000], name='train')
     # yvalhat = model.predict(X=data[1][0][:10_000], name='val')
-    yhat = model.predict(X=data[2][0])
-    ytrainhat = model.predict(X=data[0][0])
-    yvalhat = model.predict(X=data[1][0])
+    yhat = model.predict(X=data[2][0], scaler=scaler)
+    ytrainhat = model.predict(X=data[0][0], scaler=scaler)
+    yvalhat = model.predict(X=data[1][0], scaler=scaler)
 
     # calculate scores
     # print(data[2][1], yhat)
+    # print(yhat[:10])
+    # print(data[2][1][:10])
     scores = model.score(y=data[2][1], 
                          yhat=yhat, 
                          # path=save_dir,

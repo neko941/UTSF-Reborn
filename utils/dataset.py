@@ -28,6 +28,8 @@ from rich.progress import TimeElapsedColumn
 from rich.progress import MofNCompleteColumn
 from rich.progress import TimeRemainingColumn
 
+# from sklearn.preprocessing import MinMaxScaler
+
 class DatasetController():
     def __init__(self, 
                  configsPath=None, 
@@ -41,7 +43,8 @@ class DatasetController():
                  savePath='.', 
                  polarsFilling=None, 
                  machineFilling=None,
-                 low_memory=False):
+                 low_memory=False,
+                 normalization=False):
         """ Read data config """
         self.dataConfigs = yaml_load(configsPath)
 
@@ -113,6 +116,8 @@ class DatasetController():
         self.num_samples = []
         self.low_memory = low_memory
         self.smoothing = False
+        self.normalization = normalization
+        self.scaler = None
 
     def execute(self, cyclicalPattern=False):
         if len(self.y_train) == 0:
@@ -122,19 +127,26 @@ class DatasetController():
             self.df = self.df.unique()
             
 
-            if self.timeFormat is not None: self.UpdateDateColumnDataType(dateFormat=self.timeFormat, f=pl.Datetime, t=pl.Datetime)
-            self.TimeIDToDateTime(timeIDColumn=self.timeID, granularity=self.granularity, startTimeId=self.startTimeId)
-            self.df = self.StripDataset(df=self.df)
-            self.GetSegmentFeature(dirAsFeature=self.dirAsFeature, splitDirFeature=self.splitDirFeature, splitFeature=self.splitFeature)
-
-            self.df = self.df.unique(subset=[self.segmentFeature, self.dateFeature, self.timeID], maintain_order=True)
+            # =============================================================================
+            # self.segmentFeature = 'kml_segment_id'
             # save_dir = Path(self.savePath) / 'values'
             # save_dir.mkdir(parents=True, exist_ok=True)
             # u = self.df[self.segmentFeature].unique()
             # with self.ProgressBar() as progress:
             #     for ele in progress.track(u, description='Splitting jobs'):
             #         d = self.df.filter(pl.col(self.segmentFeature) == ele).clone()
+            #         d = d.with_columns(pl.col(self.dateFeature).cast(pl.Date))
             #         d.write_csv(file=save_dir / f'{ele}.csv', separator=self.delimiter)
+            # exit()
+            # =============================================================================
+
+            if self.timeFormat is not None: self.UpdateDateColumnDataType(dateFormat=self.timeFormat, f=pl.Datetime, t=pl.Datetime)
+            self.TimeIDToDateTime(timeIDColumn=self.timeID, granularity=self.granularity, startTimeId=self.startTimeId)
+            self.df = self.StripDataset(df=self.df)
+            self.GetSegmentFeature(dirAsFeature=self.dirAsFeature, splitDirFeature=self.splitDirFeature, splitFeature=self.splitFeature)
+
+            self.df = self.df.unique(subset=[self.segmentFeature, self.dateFeature, self.timeID], maintain_order=True)
+
 
             self.df = self.GetUsedColumn(df=self.df)
             if self.machineFilling: self.MachineLearningFillingMissingData(model=self.machineFilling)
@@ -164,17 +176,20 @@ class DatasetController():
             else: self.df = self.df.sort(by=[self.segmentFeature])
 
     def StripDataset(self, df):
+        # print(df)
+        # if pandas: df = pl.from_pandas(data=df.reset_index())
+        # print(df)
         if self.yearStart  : df = df.filter(pl.col(self.dateFeature).dt.year()   >= self.yearStart)
-        if self.yearEnd    : df = df.filter(pl.col(self.dateFeature).dt.year()   <= self.yearEnd)
+        if self.yearEnd    : df = df.filter(pl.col(self.dateFeature).dt.year()   < self.yearEnd)
         if self.monthStart : df = df.filter(pl.col(self.dateFeature).dt.month()  >= self.monthStart)
-        if self.monthEnd   : df = df.filter(pl.col(self.dateFeature).dt.month()  <= self.monthEnd)
+        if self.monthEnd   : df = df.filter(pl.col(self.dateFeature).dt.month()  < self.monthEnd)
         if self.dayStart   : df = df.filter(pl.col(self.dateFeature).dt.day()    >= self.dayStart)
-        if self.dayEnd     : df = df.filter(pl.col(self.dateFeature).dt.day()    <= self.dayEnd)
+        if self.dayEnd     : df = df.filter(pl.col(self.dateFeature).dt.day()    < self.dayEnd)
         if self.hourStart  : df = df.filter(pl.col(self.dateFeature).dt.hour()   >= self.hourStart)
-        if self.hourEnd    : df = df.filter(pl.col(self.dateFeature).dt.hour()   <= self.hourEnd)
+        if self.hourEnd    : df = df.filter(pl.col(self.dateFeature).dt.hour()   < self.hourEnd)
         if self.minuteStart: df = df.filter(pl.col(self.dateFeature).dt.minute() >= self.minuteStart)
-        if self.minuteEnd  : df = df.filter(pl.col(self.dateFeature).dt.minute() <= self.minuteEnd)
-
+        if self.minuteEnd  : df = df.filter(pl.col(self.dateFeature).dt.minute() < self.minuteEnd)
+        # if pandas: df = df.to_pandas()
         return df
 
     def MachineLearningFillingMissingData(self, model):
@@ -286,7 +301,8 @@ class DatasetController():
     def GetDataPaths(self, dataPaths=None, extensions=('.csv')):
         if dataPaths: self.dataPaths = dataPaths
         if not isinstance(self.dataPaths, list): self.dataPaths = [self.dataPaths]
-        for i in self.dataPaths: 
+        for i in self.dataPaths:
+            # print(i, os.path.exists(i)) 
             if os.path.isdir(i):
                 for root, dirs, files in os.walk(i):
                     for file in files:
@@ -295,14 +311,15 @@ class DatasetController():
             elif i.endswith(extensions) and os.path.exists(i): 
                 self.dataFilePaths.append(i)
         assert len(self.dataFilePaths) > 0, 'No csv file(s)'
-        # t = [48]
+        # t = [4844]
         # t = [5583,8602,9235,7107,8062,600,599,499,5989,8604,8318,3302,8065,2715,4879,2636,942,4166,5402,8256,5296,6829,9270,9064,3237,9231,3806,7877,8683,9233,7593,9234,6226,1256,6228,8822,3651,5988,6828,7696,7148,6666,7259,7320,1257,3303,3665,3805,8300,3650,6225,8948,7321,8947,6619,8319,6997,48,7875,8063,7694,4878,8697,8821,5150,446,2635,7258,4165,7594,9272,47,1258,3666,308,4831,8497,4269,8603,7878,3664,8061,5582,6667,5404,6665,6826,974,7695,7109,8498,2561,8900,309,445,5405,5990,6227,6827,8605,9096,9271,8901,9269,8255,2637,7876,5403,8902,9063,6618,49,8317,3238,8824,4732,9236,6350,7257,6617,4731,6406,7595,4270,2560,7140,4927,7108,8946,4272,4167,9353,9062,941,8682,8066,4271,4168,4832,4834,6996,8606,8823,8064,9232,1989,4928,6349,765,975,4833,9352]
         # self.dataFilePaths = [os.path.abspath(csv) for csv in list_convert(self.dataFilePaths) if int(os.path.basename(csv).split('.')[0]) in t]
         self.dataFilePaths = [os.path.abspath(csv) for csv in list_convert(self.dataFilePaths)]
-        import random
-        random.shuffle(self.dataFilePaths)
-        self.dataFilePaths = self.dataFilePaths[:150]
-        # print(self.dataFilePaths)
+        # import random
+        # random.shuffle(self.dataFilePaths)
+        # self.dataFilePaths = self.dataFilePaths[:150]
+        # [print(p.replace(r'E:\01.Code\00.Github\UTSF-Reborn', '.')) for p in self.dataFilePaths]
+        # exit()
 
     def ProgressBar(self):
         return Progress("[bright_cyan][progress.description]{task.description}",
@@ -352,7 +369,12 @@ class DatasetController():
         if self.dirAsFeature == 0:
             # df = pl.read_csv(source=self.dataFilePaths, separator=self.delimiter, has_header=hasHeader, try_parse_dates=True, low_memory=True)
             with self.ProgressBar() as progress:
-                df = pl.concat([pl.read_csv(source=csv, separator=self.delimiter, has_header=hasHeader, try_parse_dates=True, low_memory=True) for csv in progress.track(self.dataFilePaths, description=description)])
+                d = []
+                for csv in progress.track(self.dataFilePaths, description=description):
+                    data = pl.read_csv(source=csv, separator=self.delimiter, has_header=hasHeader, try_parse_dates=True, low_memory=True, infer_schema_length=10_000)
+                    if 'rain' in data.columns: data = data.with_columns(pl.col('rain').cast(pl.Float64))
+                    d.append(data)
+                df = pl.concat(d)
         else:
             dfs = []
             for csv in track(self.dataFilePaths, description=description):
@@ -442,26 +464,56 @@ class DatasetController():
         #     self.df = dfs.drop_nulls()
         # else: 
         #     self.df = self.TimeEncoder(df=self.df).drop_nulls()
-        self.df = self.TimeEncoder(df=self.df)
+        # self.df = self.TimeEncoder(df=self.df)
         # pass
+        self.df = self.df.with_columns(
+                    pl.col(self.dateFeature).dt.weekday().alias('weekday'),
+                    pl.col(self.dateFeature).dt.month().alias('month'),
+                    ((pl.col(self.dateFeature).dt.hour()*60 + pl.col(self.dateFeature).dt.minute())/self.resample).alias(f'{self.resample}mins_hour'),
+                )
+        self.df = self.df.with_columns(
+            ((pl.col(f'{self.resample}mins_hour')/(24*(60/self.resample))*2*np.pi).sin()).alias('hour_sin'), # 0 to 23 -> 23h55
+            ((pl.col(f'{self.resample}mins_hour')/(24*(60/self.resample))*2*np.pi).cos()).alias('hour_cos'), # 0 to 23 -> 23h55
+            ((pl.col('weekday')/(7)*2*np.pi).sin()).alias('day_sin'), # 1 - 7
+            ((pl.col('weekday')/(7)*2*np.pi).cos()).alias('day_cos'), # 1 -  7
+            ((pl.col('month')/(12)*2*np.pi).sin()).alias('month_sin'), # 1 -12
+            ((pl.col('month')/(12)*2*np.pi).cos()).alias('month_cos') # 1-12
+        )
+        self.trainFeatures.extend(['hour_sin', 'hour_cos', 'day_sin', 'day_cos', 'month_sin', 'month_cos'])
         
 
-    def FillDate(self, df=None, low=None, high=None, granularity=None): 
+    def FillDate(self, df=None, low=None, high=None, granularity=None, pandas=False): 
         if not self.dateFeature: return
         if df is None: df = self.df
         if not low: low=df[self.dateFeature].min()
         if not high: high=df[self.dateFeature].max()
         if not granularity: granularity=self.granularity
 
+        if pandas: 
+            df = pl.from_pandas(data=df.reset_index(drop=True))
+            # df = df.drop('index')
+            df = df.with_columns(pl.col(self.dateFeature).cast(pl.Datetime).dt.cast_time_unit("us"))
+        # print(type(df) == pd.D)
+
+        # print(df)
+
         d = pl.date_range(low=low,
                           high=high,
                           interval=timedelta(minutes=granularity),
                           closed='both',
                           name=self.dateFeature).to_frame()
+
+        # print(d)
+
         df = df.join(other=d, 
                      on=self.dateFeature, 
                      how='outer')
+        # print(df)
         df = self.StripDataset(df=df)
+        # print(df)
+
+        if pandas: 
+            df = df.to_pandas().reset_index(drop=True)
         return df
 
     def TimeBasedCrossValidation(self, args):
@@ -706,7 +758,6 @@ class DatasetController():
         save_dir = Path(save_dir) / 'values'
         save_dir.mkdir(parents=True, exist_ok=True)
 
-        from tqdm import tqdm
         target_col_name = self.targetFeatures
         inp_len = lag
         lag_window = inp_len + 1
@@ -716,20 +767,33 @@ class DatasetController():
         # print(digit); exit()
         sample_time = f'{digit}min'
         pd_time = 'm'
-
-        weekday_list = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-        weekday_dict = {k:weekday_list[k-1] for k in range(1,8)}
+        pl.Config.set_tbl_rows(100)
+        pl.Config.set_tbl_cols(100)
+        # weekday_list = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+        # weekday_dict = {k:weekday_list[k-1] for k in range(1,8)}
 
         self.SortDataset()
-        if self.df is not None: self.df.write_csv(save_dir / 'data_processed.csv')
-        pl_dataframe = pl.read_csv(save_dir / 'data_processed.csv', try_parse_dates=True)
-        # pl_dataframe = pl.read_csv(save_dir / 'data_processed.csv', try_parse_dates=True, low_memory=self.low_memory)
+        if self.df is not None: 
+            self.df.write_csv(save_dir / 'data_processed.csv')
+            del self.df 
+            gc.collect()
+        # pl_dataframe = pl.read_csv(save_dir / 'data_processed.csv', try_parse_dates=True)
+        pl_dataframe = pl.read_csv(save_dir / 'data_processed.csv', try_parse_dates=True, low_memory=self.low_memory)
         # pl_dataframe = pl.read_csv(r"E:\01.Code\00.Github\UTSF-Reborn\runs\exp141\values\data_processed.csv", try_parse_dates=True)
         pl_dataframe = self.ReduceMemoryUsage(df=pl_dataframe, info=True)
         # print(pl_dataframe); exit()
 
         # LIST_FEATURE = [target_col_name, 'roll'] 
-        LIST_FEATURE = [target_col_name, 'hour_sin', 'hour_cos', 'day_sin', 'day_cos', 'month_sin', 'month_cos'] 
+        # LIST_FEATURE = ['hour_sin', 'hour_cos', 'day_sin', 'day_cos', 'month_sin', 'month_cos', target_col_name] 
+        # print(LIST_FEATURE)
+        # print(self.trainFeatures)
+        # print(self.targetFeatures)
+        # exit()
+        # LIST_FEATURE = ['rain', target_col_name]
+        LIST_FEATURE = [target_col_name]
+        LIST_FEATURE[:0] = ['hour_sin', 'hour_cos', 'day_sin', 'day_cos', 'month_sin', 'month_cos']
+        # if self.CyclicalPattern: LIST_FEATURE.extend(['hour_sin', 'hour_cos', 'day_sin', 'day_cos', 'month_sin', 'month_cos'])
+        # print(LIST_FEATURE, target_col_name); exit()
         FINAL_LIST_FEATURE = []
         for ft_l in LIST_FEATURE:
             for i in range(0, lag_window):
@@ -779,12 +843,24 @@ class DatasetController():
                 pd_df = pd_df.set_index(time_col_name).asfreq(sample_time)
                 pd_df.reset_index(inplace=True)
 
+                # pd_df.to_csv('before.csv')
+                # pd_df = self.FillDate(df=pd_df, pandas=type(pd_df) == pd.DataFrame)
+                # pd_df = self.StripDataset(pd_df, pandas = type(pd_df) == pd.DataFrame)
+                # pd_df = self.FillDate(pd_df, type(pd_df) == pd.DataFrame)
+                # print(pd_df[[i for i in pd_df.columns if i != self.dateFeature]])
+                # pd_df = pd.concat([pd_df[self.dateFeature], pd_df[[i for i in pd_df.columns if i != self.dateFeature]].interpolate(method='quadratic')], axis=1)
+                # pd_df = pd_df.set_index(time_col_name).resample(sample_time).interpolate(method='cubic')
+                # pd_df.to_csv('after.csv')
+                # print()
+                # print(type(pd_df) == pd.DataFrame); exit()                
+
                 # sub_pl_dataframe = sub_pl_dataframe.drop(id_col_name)
                 sub_pl_dataframe = sub_pl_dataframe.groupby_dynamic(time_col_name, every=f"{digit}{pd_time}").agg(pl.col(target_col_name).mean())
                 sub_pl_dataframe = sub_pl_dataframe.to_pandas()
                 sub_pl_dataframe = sub_pl_dataframe.set_index(time_col_name).asfreq(sample_time)
                 sub_pl_dataframe.reset_index(inplace=True)
                 pd_df = pd_df.combine_first(sub_pl_dataframe)
+
 
 
                 #########################################################
@@ -800,25 +876,27 @@ class DatasetController():
                                     )
 
 
-                pd_df = pd_df.with_columns(   
-                    pl.col(time_col_name).dt.weekday().apply(lambda x: weekday_dict[x]).alias('weekday')
-                ) 
+                # pd_df = pd_df.with_columns(   
+                #     pl.col(time_col_name).dt.weekday().apply(lambda x: weekday_dict[x]).alias('weekday')
+                # ) 
+                # pd_df = pd_df.with_columns(   
+                #     pl.col(time_col_name).dt.weekday().alias('weekday2')
+                # ) 
 
 
-                pd_df = pd_df.with_columns(
-                    pl.col(time_col_name).dt.weekday().alias('weekday'),
-                    pl.col(time_col_name).dt.month().alias('month'),
-                    ((pl.col(time_col_name).dt.hour()*60 + pl.col(time_col_name).dt.minute())/digit).alias(f'{digit}mins_hour'),
-                )
-
-                pd_df = pd_df.with_columns(
-                    ((pl.col(f'{digit}mins_hour')/(24*(60/digit))*2*np.pi).sin()).alias('hour_sin'), # 0 to 23 -> 23h55
-                    ((pl.col(f'{digit}mins_hour')/(24*(60/digit))*2*np.pi).cos()).alias('hour_cos'), # 0 to 23 -> 23h55
-                    ((pl.col('weekday')/(7)*2*np.pi).sin()).alias('day_sin'), # 1 - 7
-                    ((pl.col('weekday')/(7)*2*np.pi).cos()).alias('day_cos'), # 1 -  7
-                    ((pl.col('month')/(12)*2*np.pi).sin()).alias('month_sin'), # 1 -12
-                    ((pl.col('month')/(12)*2*np.pi).cos()).alias('month_cos') # 1-12
-                )
+                # pd_df = pd_df.with_columns(
+                #     pl.col(time_col_name).dt.weekday().alias('weekday'),
+                #     pl.col(time_col_name).dt.month().alias('month'),
+                #     ((pl.col(time_col_name).dt.hour()*60 + pl.col(time_col_name).dt.minute())/digit).alias(f'{digit}mins_hour'),
+                # )
+                # pd_df = pd_df.with_columns(
+                #     ((pl.col(f'{digit}mins_hour')/(24*(60/digit))*2*np.pi).sin()).alias('hour_sin'), # 0 to 23 -> 23h55
+                #     ((pl.col(f'{digit}mins_hour')/(24*(60/digit))*2*np.pi).cos()).alias('hour_cos'), # 0 to 23 -> 23h55
+                #     ((pl.col('weekday')/(7)*2*np.pi).sin()).alias('day_sin'), # 1 - 7
+                #     ((pl.col('weekday')/(7)*2*np.pi).cos()).alias('day_cos'), # 1 -  7
+                #     ((pl.col('month')/(12)*2*np.pi).sin()).alias('month_sin'), # 1 -12
+                #     ((pl.col('month')/(12)*2*np.pi).cos()).alias('month_cos') # 1-12
+                # )
 
                 pd_df = pd_df[LIST_FEATURE + [time_col_name]].to_pandas()
                 # pd_df.to_csv('47_only.csv')
@@ -901,12 +979,44 @@ class DatasetController():
                 assert np.count_nonzero(np.isnan(y_val)) == 0, 'There are at least one null value in val set'
                 assert np.count_nonzero(np.isnan(y_train)) == 0, 'There are at least one null value in train set'
 
-            self.X_train = np.load(file=xtr, mmap_mode='r')
-            self.y_train = np.load(file=ytr, mmap_mode='r')
+            self.X_train = np.load(file=xtr, mmap_mode='r+')
+            self.y_train = np.load(file=ytr, mmap_mode='r+')
             self.X_val = np.load(file=xv, mmap_mode='r')
             self.y_val = np.load(file=yv, mmap_mode='r')
             self.X_test = np.load(file=xt, mmap_mode='r')
             self.y_test = np.load(file=yt, mmap_mode='r')
+
+            if self.normalization:
+                self.scaler = {'max' : self.X_train[:, : , -1].max(), 
+                               'min' : self.X_train[:, : , -1].min(),
+                               # 'max_rain' : self.X_train[:, : , -2].max(), 
+                               # 'min_rain' : self.X_train[:, : , -2].min()
+                               }
+                # print(self.X_train[:3, : , -1])
+                # print(self.y_train[:3], end='\n\n\n\n')
+                self.X_train[:, : , -1] = (self.X_train[:, : , -1] - self.scaler['min']) / (self.scaler['max'] - self.scaler['min'])
+                # self.X_train[:, : , -2] = (self.X_train[:, : , -2] - self.scaler['min_rain']) / (self.scaler['max_rain'] - self.scaler['min_rain'])
+                self.y_train = (self.y_train - self.scaler['min']) / (self.scaler['max'] - self.scaler['min'])
+                x = self.X_train[:, : , -1] * (self.scaler['max'] - self.scaler['min']) +  self.scaler['min']
+                y = self.y_train * (self.scaler['max'] - self.scaler['min']) +  self.scaler['min']
+
+                # print(x[:3])
+                # print(y[:3])
+                # print(f'{self.X_train[:, : , -1].max() = }')
+                # print(f'{self.X_train[:, : , -1].min() = }')
+                # print(f'{self.X_train[:, : , -2].max() = }')
+                # print(f'{self.X_train[:, : , -2].min() = }')
+                # print(f'{self.y_train.max() = }')
+                # print(f'{self.y_train.min() = }')
+                # exit()
+
+                # self.scaler = {'max' : self.X_train[:, : , -1].max(), 'min' : self.X_train[:, : , -1].min()}
+                # self.X_train[:, : , -1] = (self.X_train[:, : , -1] - self.scaler['min']) / (self.scaler['max'] - self.scaler['min'])
+                # self.y_train = (self.y_train - self.scaler['min']) / (self.scaler['max'] - self.scaler['min'])
+
+                # print(self.y_train.max(), self.y_train.min())
+                # print(self.scaler)
+                # json.dump(self.scaler, open(save_dir / 'scaler.save', 'w'), indent=4, separators=(',', ': ')) 
 
             np.save(save_dir / 'invalid.npy', invalid)
 

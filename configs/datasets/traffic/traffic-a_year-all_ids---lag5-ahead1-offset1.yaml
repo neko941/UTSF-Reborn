@@ -4,9 +4,9 @@
 # y_val:   .\data\processed\traffic\traffic-a_year-all_ids\lag5-ahead1-offset1\yval.npy
 # X_test:  .\data\processed\traffic\traffic-a_year-all_ids\lag5-ahead1-offset1\xtest.npy
 # y_test:  .\data\processed\traffic\traffic-a_year-all_ids\lag5-ahead1-offset1\ytest.npy
-X_train: .\runs\case11\values\xtrain.npy
-y_train: .\runs\case11\values\ytrain.npy
-X_val:   .\runs\case5\values\xval.npy
-y_val:   .\runs\case5\values\yval.npy
-X_test:  .\runs\case5\values\xtest.npy
-y_test:  .\runs\case5\values\ytest.npy
+X_train: .\runs\all\values\xtrain.npy
+y_train: .\runs\all\values\ytrain.npy
+X_val:   .\runs\all\values\xval.npy
+y_val:   .\runs\all\values\yval.npy
+X_test:  .\runs\all\values\xtest.npy
+y_test:  .\runs\all\values\ytest.npy
