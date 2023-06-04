@@ -758,44 +758,32 @@ class DatasetController():
         save_dir = Path(save_dir) / 'values'
         save_dir.mkdir(parents=True, exist_ok=True)
 
-        target_col_name = self.targetFeatures
         inp_len = lag
         lag_window = inp_len + 1
         id_col_name = self.segmentFeature
-        time_col_name = self.dateFeature
         digit = self.resample
-        # print(digit); exit()
         sample_time = f'{digit}min'
         pd_time = 'm'
         pl.Config.set_tbl_rows(100)
         pl.Config.set_tbl_cols(100)
-        # weekday_list = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-        # weekday_dict = {k:weekday_list[k-1] for k in range(1,8)}
 
         self.SortDataset()
         if self.df is not None: 
             self.df.write_csv(save_dir / 'data_processed.csv')
             del self.df 
             gc.collect()
-        # pl_dataframe = pl.read_csv(save_dir / 'data_processed.csv', try_parse_dates=True)
         pl_dataframe = pl.read_csv(save_dir / 'data_processed.csv', try_parse_dates=True, low_memory=self.low_memory)
-        # pl_dataframe = pl.read_csv(r"E:\01.Code\00.Github\UTSF-Reborn\runs\exp141\values\data_processed.csv", try_parse_dates=True)
         pl_dataframe = self.ReduceMemoryUsage(df=pl_dataframe, info=True)
-        # print(pl_dataframe); exit()
 
-        # LIST_FEATURE = [target_col_name, 'roll'] 
-        # LIST_FEATURE = ['hour_sin', 'hour_cos', 'day_sin', 'day_cos', 'month_sin', 'month_cos', target_col_name] 
-        # print(LIST_FEATURE)
-        # print(self.trainFeatures)
-        # print(self.targetFeatures)
-        # exit()
-        # LIST_FEATURE = ['rain', target_col_name]
-        LIST_FEATURE = [target_col_name]
-        LIST_FEATURE[:0] = ['hour_sin', 'hour_cos', 'day_sin', 'day_cos', 'month_sin', 'month_cos']
-        # if self.CyclicalPattern: LIST_FEATURE.extend(['hour_sin', 'hour_cos', 'day_sin', 'day_cos', 'month_sin', 'month_cos'])
-        # print(LIST_FEATURE, target_col_name); exit()
+        LIST_FEATURE = [self.targetFeatures]
+        if self.CyclicalPattern: LIST_FEATURE[:0] = ['hour_sin', 'hour_cos', 'day_sin', 'day_cos', 'month_sin', 'month_cos']
+
         FINAL_LIST_FEATURE = []
         for ft_l in LIST_FEATURE:
+            # if ft_l == self.segmentFeature:
+            #     FINAL_LIST_FEATURE.append(ft_l)
+            #     continue
+
             for i in range(0, lag_window):
                 if i == 0:
                     FINAL_LIST_FEATURE.append(ft_l)
@@ -831,33 +819,21 @@ class DatasetController():
 
                 #########################################################
                 # Resample 
-                # if debug:
-                #     print(sub_pl_dataframe)
                 pd_df = sub_pl_dataframe.to_pandas()
                 pd_df = pd_df.drop(['kml_segment_id'], axis=1)
-                inserted_row = [pd_df.iloc[0][time_col_name].floor(sample_time)]
+                inserted_row = [pd_df.iloc[0][self.dateFeature].floor(sample_time)]
+                # print(inserted_row)
+                # exit()
 
-                if inserted_row[0] != pd_df.iloc[0][time_col_name]:
+                if inserted_row[0] != pd_df.iloc[0][self.dateFeature]:
                     inserted_row.extend(list(np.full(shape=(len(pd_df.columns)-1), fill_value=np.nan)))
                     pd_df = pd.concat([pd.DataFrame([inserted_row], columns=pd_df.columns), pd_df])
-                pd_df = pd_df.set_index(time_col_name).asfreq(sample_time)
+                pd_df = pd_df.set_index(self.dateFeature).asfreq(sample_time)
                 pd_df.reset_index(inplace=True)
-
-                # pd_df.to_csv('before.csv')
-                # pd_df = self.FillDate(df=pd_df, pandas=type(pd_df) == pd.DataFrame)
-                # pd_df = self.StripDataset(pd_df, pandas = type(pd_df) == pd.DataFrame)
-                # pd_df = self.FillDate(pd_df, type(pd_df) == pd.DataFrame)
-                # print(pd_df[[i for i in pd_df.columns if i != self.dateFeature]])
-                # pd_df = pd.concat([pd_df[self.dateFeature], pd_df[[i for i in pd_df.columns if i != self.dateFeature]].interpolate(method='quadratic')], axis=1)
-                # pd_df = pd_df.set_index(time_col_name).resample(sample_time).interpolate(method='cubic')
-                # pd_df.to_csv('after.csv')
-                # print()
-                # print(type(pd_df) == pd.DataFrame); exit()                
-
-                # sub_pl_dataframe = sub_pl_dataframe.drop(id_col_name)
-                sub_pl_dataframe = sub_pl_dataframe.groupby_dynamic(time_col_name, every=f"{digit}{pd_time}").agg(pl.col(target_col_name).mean())
+                
+                sub_pl_dataframe = sub_pl_dataframe.groupby_dynamic(self.dateFeature, every=f"{digit}{pd_time}").agg(pl.col(self.targetFeatures).mean())
                 sub_pl_dataframe = sub_pl_dataframe.to_pandas()
-                sub_pl_dataframe = sub_pl_dataframe.set_index(time_col_name).asfreq(sample_time)
+                sub_pl_dataframe = sub_pl_dataframe.set_index(self.dateFeature).asfreq(sample_time)
                 sub_pl_dataframe.reset_index(inplace=True)
                 pd_df = pd_df.combine_first(sub_pl_dataframe)
 
@@ -868,45 +844,11 @@ class DatasetController():
                 
                 # =======================================================================================
                 pd_df = pl.from_pandas(pd_df)
-                        
-                # print_color('Step2: Generate time related feature engineering')
-                pd_df = pd_df.with_columns(
-                                        pl.lit(id_, dtype=pl.Float64).alias('ID'),
-                                        pl.col(time_col_name).dt.hour().alias('hour_id')
-                                    )
-
-
-                # pd_df = pd_df.with_columns(   
-                #     pl.col(time_col_name).dt.weekday().apply(lambda x: weekday_dict[x]).alias('weekday')
-                # ) 
-                # pd_df = pd_df.with_columns(   
-                #     pl.col(time_col_name).dt.weekday().alias('weekday2')
-                # ) 
-
-
-                # pd_df = pd_df.with_columns(
-                #     pl.col(time_col_name).dt.weekday().alias('weekday'),
-                #     pl.col(time_col_name).dt.month().alias('month'),
-                #     ((pl.col(time_col_name).dt.hour()*60 + pl.col(time_col_name).dt.minute())/digit).alias(f'{digit}mins_hour'),
-                # )
-                # pd_df = pd_df.with_columns(
-                #     ((pl.col(f'{digit}mins_hour')/(24*(60/digit))*2*np.pi).sin()).alias('hour_sin'), # 0 to 23 -> 23h55
-                #     ((pl.col(f'{digit}mins_hour')/(24*(60/digit))*2*np.pi).cos()).alias('hour_cos'), # 0 to 23 -> 23h55
-                #     ((pl.col('weekday')/(7)*2*np.pi).sin()).alias('day_sin'), # 1 - 7
-                #     ((pl.col('weekday')/(7)*2*np.pi).cos()).alias('day_cos'), # 1 -  7
-                #     ((pl.col('month')/(12)*2*np.pi).sin()).alias('month_sin'), # 1 -12
-                #     ((pl.col('month')/(12)*2*np.pi).cos()).alias('month_cos') # 1-12
-                # )
-
-                pd_df = pd_df[LIST_FEATURE + [time_col_name]].to_pandas()
-                # pd_df.to_csv('47_only.csv')
-                # sub_pl_dataframe.to_csv('47_only_polar.csv')
+                pd_df = pd_df[LIST_FEATURE + [self.dateFeature]].to_pandas()
+                # print(pd_df)
+                pd_df = pd_df.set_index(self.dateFeature)
+                # print(pd_df)
                 # exit()
-                ##########################################################
-                # Get train/val/test (remove invalid training time series data)
-                # time as index, ID and speed columns
-
-                pd_df = pd_df.set_index(time_col_name)
                 # =======================================================================================
 
                 for ft in LIST_FEATURE:
@@ -920,26 +862,28 @@ class DatasetController():
                 pd_df = pd_df.dropna()
                 pd_df = pd_df[FINAL_LIST_FEATURE]
                 
+                # print(pd_df)
+                # exit()
+
                 input_feature =  pd_df.drop(columns=LIST_FEATURE).to_numpy()
                 
-                target_feature = pd_df[target_col_name].to_numpy()
+                target_feature = pd_df[self.targetFeatures].to_numpy()
                 # if debug:
                 #     print(pd_df.drop(columns=LIST_FEATURE).iloc[0])
                 
                 num_samples = len(target_feature)
                 train_num = train_idx = int(num_samples*splitRatio[0])
+                # print(f'train')
                 val_id = int(num_samples*(splitRatio[0] + splitRatio[1]))
                 val_num = val_id-train_num
                 test_num = num_samples-(train_num+val_num)
                 
-                test1 = input_feature[0:train_idx].size == 0
-                test2 = target_feature[0:train_idx].size == 0
-                test3 = input_feature[train_idx:val_id].size == 0 
-                test4 = target_feature[train_idx:val_id].size == 0
-                test5 = input_feature[val_id:].size == 0
-                test6 = target_feature[val_id:].size == 0
-
-                if any([test1, test2, test3, test4, test5, test6]):
+                if any([input_feature[0:train_idx].size == 0, 
+                        target_feature[0:train_idx].size == 0, 
+                        input_feature[train_idx:val_id].size == 0, 
+                        target_feature[train_idx:val_id].size == 0, 
+                        input_feature[val_id:].size == 0, 
+                        target_feature[val_id:].size == 0]):
                     # print(f'{id_} is empty')
                     invalid.append(id_)
                     continue
