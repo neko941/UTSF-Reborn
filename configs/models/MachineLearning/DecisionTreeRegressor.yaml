@@ -1,0 +1,6 @@
+# https://scikit-learn.org/stable/modules/generated/sklearn.tree.DecisionTreeRegressor.html
+
+criterion: poisson
+# description:
+# default: squared_error
+# options: squared_error, friedman_mse, absolute_error, poisson

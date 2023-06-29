@@ -1,0 +1,6 @@
+# https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.AdaBoostRegressor.html
+
+n_estimators: 50
+# description:
+# default: 50
+# options:

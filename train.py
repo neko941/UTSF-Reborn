@@ -7,6 +7,9 @@ if str(ROOT) not in sys.path:
     sys.path.append(str(ROOT))  # add ROOT to PATH
 ROOT = Path(os.path.relpath(ROOT, Path.cwd()))  # relative
 
+import matplotlib
+matplotlib.use('Agg') # Tcl_AsyncDelete: async handler deleted by the wrong thread
+
 import absl.logging
 absl.logging.set_verbosity(absl.logging.ERROR) # disable absl INFO and WARNING log messages
 
@@ -34,9 +37,20 @@ from rich.table import Table
 from rich.console import Console
 from rich.terminal_theme import MONOKAI
 
+from utils.general import convert_seconds
+import csv
+
+from rich.progress import Progress
+from rich.progress import BarColumn 
+from rich.progress import TextColumn
+from rich.progress import TimeElapsedColumn
+from rich.progress import MofNCompleteColumn
+from rich.progress import TimeRemainingColumn
+
 def main(opt):
     """ Get the save directory for this run """
     save_dir = str(increment_path(Path(opt.project) / opt.name, overwrite=opt.overwrite, mkdir=True))
+    # save_dir = str(Path(opt.project) / 'crossvalidation-data_avg_min_max_std_rain-all_ids-use_avg_min_max_std_rain-fill_ffill' / f'r{opt.resample}l{opt.lag}')
 
     """ Path to save configs """
     path_configs = Path(save_dir, 'configs')
@@ -54,9 +68,25 @@ def main(opt):
     """ Update options """
     opt = update_opt(opt)
     shuffle = False
+    opt.NuSVRWrapper = False
+    opt.SVRWrapper = False
+    opt.HistGradientBoostingRegressorWrapper = False
+    
+    opt.EmbeddedRNN__Tensorflow = False
+    opt.EmbeddedLSTM__Tensorflow = False
+    opt.EmbeddedBiLSTM__Tensorflow = False
+    opt.EmbeddedTime2Vec_BiLSTM__Tensorflow = False
+    opt.EmbeddedMultihead_BiLSTSM__Tensorflow = False
+    opt.EmbeddedSelfAttention_BiLSTSM__Tensorflow = False
+    opt.LTSF_Embedded_Linear__Tensorflow = False
+    opt.LTSF_Embedded_NLinear__Tensorflow = False
+    opt.LTSF_Embedded_DLinear__Tensorflow = False
+    # CrossValidation = True
+    CrossValidation = False
 
     """ Save updated options """
     yaml_save(path_configs / 'updated_opt.yaml', vars(opt))
+    shutil.copyfile(opt.dataConfigs, path_configs/os.path.basename(opt.dataConfigs))
 
     """ Preprocessing dataset """
     dataset = DatasetController(configsPath=opt.dataConfigs,
@@ -71,96 +101,124 @@ def main(opt):
                                 polarsFilling=opt.polarsFilling,
                                 machineFilling=opt.machineFilling,
                                 low_memory=opt.low_memory,
-                                normalization=opt.normalization).execute(cyclicalPattern=opt.cyclicalPattern)
+                                normalization=opt.normalization,
+                                cyclicalPattern=opt.cyclicalPattern).execute()
     X_train, y_train, X_val, y_val, X_test, y_test = dataset.GetData(shuffle=shuffle)
     scaler = dataset.scaler
-
     del dataset
     gc.collect()
-
+    
     """ Create result table """
     console = Console(record=True)
     table = Table(title="[cyan]Results", show_header=True, header_style="bold magenta", box=rbox.ROUNDED, show_lines=True)
     [table.add_column(f'[green]{name}', justify='center') for name in ['Name', 'Time', *list(metric_dict.keys())]]
 
-    """ Train models """
-    # from models.test import build_Baseline_idea1, build_Baseline_idea2, build_Baseline_idea4, build_Baseline_ave, build_Baseline_5ave, build_Bi_LSTSM
-    # from models.test import build_Bi_LSTSM
-    # from utils.metrics import score
-    # for f in [build_Baseline_idea1, build_Baseline_idea2, build_Baseline_idea4, build_Baseline_ave, build_Baseline_5ave]:
-    #     model = f(opt.lag, 1)
-    #     yhat = model.predict(X_test[:, :, 1:2])
-    #     scores = score(y=y_test, 
-    #                      yhat=yhat, 
-    #                      r=4)
-    #     table.add_row(f.__name__, '0s', *scores)
-    #     console.print(table)
-    # import time
-    # from keras.optimizers import Adam
-    # from keras.losses import MeanSquaredError
-    # from tensorflow.keras.utils import Sequence 
-    # from keras.callbacks import EarlyStopping
-    # from keras.callbacks import ReduceLROnPlateau
-    # from utils.general import convert_seconds
-    # class DataGenerator(Sequence):
-    #     def __init__(self, x, y, batchsz):
-    #         self.x, self.y = x, y
-    #         self.batch_size = batchsz
+    
 
-    #     def __len__(self):
-    #         return int(np.ceil(len(self.x) / float(self.batch_size)))
+    if not CrossValidation:
+        for item in model_dict:
+            if not vars(opt)[f'{item["model"].__name__}']: continue
+            shutil.copyfile(item['config'], path_configs/os.path.basename(item['config']))
+            datum = train(model=item['model'], 
+                        modelConfigs=item['config'], 
+                        data=[[X_train, y_train], [X_val, y_val], [X_test, y_test]], 
+                        save_dir=save_dir,
+                        ahead=opt.ahead, 
+                        seed=opt.seed, 
+                        normalize_layer=None,
+                        learning_rate=opt.lr,
+                        epochs=opt.epochs, 
+                        patience=opt.patience,
+                        optimizer=opt.optimizer, 
+                        loss=opt.loss,
+                        batchsz=opt.batchsz,
+                        r=opt.round,
+                        enc_in=1,
+                        scaler=scaler,
+                        time_as_int=False)
+            table.add_row(*datum)
+            console.print(table)
+            console.save_svg(os.path.join(save_dir, 'results.svg'), theme=MONOKAI)  
+            table_to_df(table).write_csv(os.path.join(save_dir, 'results.csv'))
+    else:
+        x = np.concatenate([X_train, X_val, X_test], axis=0)
+        x = np.array_split(x, 100, axis=0)
+        y = np.concatenate([y_train, y_val, y_test], axis=0)
+        y = np.array_split(y, 100, axis=0)
 
-    #     def __getitem__(self, idx):
-    #         batch_x = self.x[idx * self.batch_size:(idx + 1) * self.batch_size]
-    #         batch_y = self.y[idx * self.batch_size:(idx + 1) * self.batch_size]
-    #         return batch_x, batch_y
-    # model = build_Bi_LSTSM(seed=opt.seed, input_len=opt.lag, predict_len=opt.ahead, chanels=2)
-    # start = time.time()
-    # model.compile(optimizer=Adam(learning_rate=opt.lr), loss=MeanSquaredError())
-    # min_delta = 0.001
-    # history = model.fit(DataGenerator(x=X_train, y=y_train, batchsz=opt.batchsz), 
-    #                               validation_data=DataGenerator(x=X_val, y=y_val, batchsz=opt.batchsz),
-    #                               epochs=opt.epochs,
-    #                               callbacks=[EarlyStopping(monitor='val_loss', patience=opt.patience, min_delta=min_delta),
-    #                                          ReduceLROnPlateau(monitor='val_loss',
-    #                                                            factor=0.1,
-    #                                                            patience=opt.patience / 5,
-    #                                                            verbose=0,
-    #                                                            mode='auto',
-    #                                                            min_delta=min_delta * 10,
-    #                                                            cooldown=0,
-    #                                                            min_lr=0)])
-    # time_used = convert_seconds(time.time() - start)
-    # yhat = model.predict(X_test)
-    # scores = score(y=y_test, 
-    #                  yhat=yhat, 
-    #                  r=4)
-    # table.add_row('BiLSTM', time_used, *scores)
-    # console.print(table)
-
-    for item in model_dict:
-        if not vars(opt)[f'{item["model"].__name__}']: continue
-        shutil.copyfile(item['config'], path_configs/os.path.basename(item['config']))
-        datum = train(model=item['model'], 
-                      modelConfigs=item['config'], 
-                      data=[[X_train, y_train], [X_val, y_val], [X_test, y_test]], 
-                      save_dir=save_dir,
-                      ahead=opt.ahead, 
-                      seed=opt.seed, 
-                      normalize_layer=None,
-                      learning_rate=opt.lr,
-                      epochs=opt.epochs, 
-                      patience=opt.patience,
-                      optimizer=opt.optimizer, 
-                      loss=opt.loss,
-                      batchsz=opt.batchsz,
-                      r=opt.round,
-                      enc_in=1,
-                      scaler=scaler)
-        table.add_row(*datum)
-        console.print(table)
-        console.save_svg(os.path.join(save_dir, 'results.svg'), theme=MONOKAI)  
-    table_to_df(table).write_csv(os.path.join(save_dir, 'results.csv'))
+        
+        f = open(os.path.join(save_dir, 'results.csv'), 'w', newline='', encoding='utf-8')
+        writer = csv.writer(f)
+        
+        values_dir = Path(save_dir) / 'values'
+        values_dir.mkdir(parents=True, exist_ok=True)
+        
+        for item in model_dict:
+            if not vars(opt)[f'{item["model"].__name__}']: continue
+            shutil.copyfile(item['config'], path_configs/os.path.basename(item['config']))
+            data = []
+            name = ''
+            with Progress("[bright_cyan][progress.description]{task.description}",
+                              BarColumn(),
+                              TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+                              TextColumn("•Items"),
+                              MofNCompleteColumn(), # "{task.completed}/{task.total}",
+                              TextColumn("•Remaining"),
+                              TimeRemainingColumn(),
+                              TextColumn("•Total"),
+                              TimeElapsedColumn()) as progress:
+                # start = int((1- opt.trainsz - opt.valsz)*100)
+                start = 30
+                for i in progress.track(range(start, 
+                                              int(opt.trainsz*100)+1,
+                                              10), description='Cross Validate'):
+                    X_train = np.concatenate(x[:i])
+                    y_train = np.concatenate(y[:i])
+                    # X_val = np.concatenate(x[i:int(i + opt.valsz*100)]) 
+                    # y_val = np.concatenate(y[i:int(i + opt.valsz*100)]) 
+                    # X_test = np.concatenate(x[int(i + opt.valsz*100) : int(int(i + opt.valsz*100) + (1- opt.trainsz - opt.valsz)*100)])
+                    # y_test = np.concatenate(y[int(i + opt.valsz*100) : int(int(i + opt.valsz*100) + (1- opt.trainsz - opt.valsz)*100)])
+                    
+                    X_val = X_test = np.concatenate(x[int(i + opt.valsz*100):int(int(i + opt.valsz*100) + (1- opt.trainsz - opt.valsz)*100)]) 
+                    y_val = y_test = np.concatenate(y[int(i + opt.valsz*100):int(int(i + opt.valsz*100) + (1- opt.trainsz - opt.valsz)*100)])
+                   
+                    datum = train(model=item['model'], 
+                                  modelConfigs=item['config'], 
+                                  data=[[X_train, y_train], [X_val, y_val], [X_test, y_test]], 
+                                  save_dir=save_dir,
+                                  ahead=opt.ahead, 
+                                  seed=opt.seed, 
+                                  normalize_layer=None,
+                                  learning_rate=opt.lr,
+                                  epochs=opt.epochs, 
+                                  patience=opt.patience,
+                                  optimizer=opt.optimizer, 
+                                  loss=opt.loss,
+                                  batchsz=opt.batchsz,
+                                  r=opt.round,
+                                  enc_in=1,
+                                  scaler=scaler,
+                                  time_as_int=True)
+                    name = datum[0]
+                    data.append([float(ele) for ele in datum[1:]])
+                    datum[0] = datum[0] + f'_{i}'
+                    writer.writerow(datum)
+                    np.save(values_dir / f'xtrain_{name}_{i}.npy', X_train)
+                    np.save(values_dir / f'ytrain_{name}_{i}.npy', y_train)
+                    np.save(values_dir / f'xval_{name}_{i}.npy', X_val)
+                    np.save(values_dir / f'yval_{name}_{i}.npy', y_val)
+                    np.save(values_dir / f'xtest_{name}_{i}.npy', X_test)
+                    np.save(values_dir / f'ytest_{name}_{i}.npy', y_test)
+            
+            
+            data = np.array(data)
+            data = [name, convert_seconds(np.sum(data[:, 0])), *np.mean(data[:, 1:], axis=0)]
+            data = [str(ele) for ele in data]
+            table.add_row(*data)
+            console.print(table)
+            console.save_svg(os.path.join(save_dir, 'results.svg'), theme=MONOKAI)  
+            # table_to_df(table).write_csv()
+        f.close()
 
 def train(model, modelConfigs, data, save_dir, ahead,
           seed: int = 941, 
@@ -173,7 +231,8 @@ def train(model, modelConfigs, data, save_dir, ahead,
           batchsz:int = 64,
           r: int = 4,
           enc_in: int = 1,
-          scaler = None) -> list:
+          scaler = None,
+          time_as_int:bool = False) -> list:
     # import tensorflow as tf
     # model = tf.keras.models.load_model('VanillaLSTM__Tensorflow')
     # model.summary()
@@ -195,7 +254,8 @@ def train(model, modelConfigs, data, save_dir, ahead,
               learning_rate=learning_rate, 
               batchsz=batchsz,
               X_train=data[0][0], y_train=data[0][1],
-              X_val=data[1][0], y_val=data[1][1])
+              X_val=data[1][0], y_val=data[1][1],
+              time_as_int=time_as_int)
     model.save(file_name=f'{model.__class__.__name__}')
     
 
@@ -226,7 +286,7 @@ def train(model, modelConfigs, data, save_dir, ahead,
     model.plot(save_dir=save_dir, y=data[0][1], yhat=ytrainhat, dataset='Train')
     model.plot(save_dir=save_dir, y=data[1][1], yhat=yvalhat, dataset='Val')
     model.plot(save_dir=save_dir, y=data[2][1], yhat=yhat, dataset='Test')
-
+    
     model.plot(save_dir=save_dir, y=data[0][1][:100], yhat=ytrainhat[:100], dataset='Train100')
     model.plot(save_dir=save_dir, y=data[1][1][:100], yhat=yvalhat[:100], dataset='Val100')
     model.plot(save_dir=save_dir, y=data[2][1][:100], yhat=yhat[:100], dataset='Test100')

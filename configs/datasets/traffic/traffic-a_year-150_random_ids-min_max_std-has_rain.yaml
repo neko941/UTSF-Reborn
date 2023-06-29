@@ -1,0 +1,178 @@
+data: 
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\9194.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\1484.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\9265.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\9605.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\2130.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\4356.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\9352.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\1066.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\2227.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\380.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\659.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\9363.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\2755.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\1796.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\5280.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\4001.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\8951.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\1075.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\6296.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\664.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\2765.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\4917.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\1137.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\6185.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\6123.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\5712.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\8040.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\1453.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\8014.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\2088.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\1963.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\7180.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\4475.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\3335.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\2118.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\8858.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\2371.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\2548.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\208.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\3598.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\3939.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\8075.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\5397.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\3565.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\4922.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\203.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\3873.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\874.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\5697.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\6540.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\9695.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\7941.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\2834.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\61.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\8297.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\4427.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\4496.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\1520.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\4861.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\6166.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\9500.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\363.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\3708.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\8387.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\5574.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\9304.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\4429.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\7455.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\3458.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\3867.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\332.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\313.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\1850.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\691.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\7473.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\937.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\7397.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\2420.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\6968.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\6266.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\8510.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\3558.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\5047.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\4855.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\7721.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\7815.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\7453.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\1660.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\3113.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\1649.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\5100.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\399.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\3475.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\5595.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\4543.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\3243.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\8413.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\1289.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\2311.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\7499.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\4465.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\7503.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\8198.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\9235.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\8582.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\5042.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\9371.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\4098.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\8045.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\4112.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\1630.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\1026.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\2215.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\8913.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\2050.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\8568.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\7477.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\962.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\3403.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\7857.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\9258.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\2352.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\8618.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\7134.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\48.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\5269.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\4854.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\264.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\2034.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\7020.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\5787.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\9389.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\9633.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\7936.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\8673.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\2489.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\9444.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\3353.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\8847.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\3334.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\4810.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\5912.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\9436.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\5378.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\6625.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\5453.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\1334.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\8285.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\4194.csv
+  - .\data\raw\traffic\a_year-min_max_std-has_rain-by_id\6686.csv
+target: avg_speed
+date: date
+features: 
+  - kml_segment_id
+  - max_speed
+  - min_speed
+  - std_speed
+  - rain
+time_id: time_id
+start_time_id: 240
+delimiter: "|"
+split_feature: kml_segment_id
+dir_as_feature: 0
+split_dir_feature: 0
+granularity: 5
+time_format: 
+
+year_start:
+year_end:
+month_start:
+month_end:
+day_start:
+day_end:
+hour_start: 4
+hour_end: 23
+minute_start:
+minute_end:

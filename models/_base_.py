@@ -142,26 +142,66 @@ class MachineLearningModel(BaseModel):
     def build(self): pass
 
     def preprocessing(self, x, classifier=False):
+        # os.remove(temp_file)
         if classifier: res = [i.flatten().astype(int) for i in x]
         else: res = [i.flatten() for i in x]
+        # else: res = np.ravel(x)
         # if classifier: res = x.flatten().astype(int)
         # else: res = x.flatten()
         return res
 
-    def fit(self, X_train, y_train, **kwargs):
+    # class DataGenerator:
+    #     def __init__(self, x, y, batch_size, classifier=False):
+    #         self.x = x
+    #         self.y = y
+    #         self.batch_size = batch_size
+    #         self.classifier = classifier
+
+    #     def __len__(self):
+    #         return int(np.ceil(len(self.x) / float(self.batch_size)))
+
+    #     def __getitem__(self, idx):
+    #         batch_x = self.x[idx * self.batch_size:(idx + 1) * self.batch_size]
+    #         batch_y = self.y[idx * self.batch_size:(idx + 1) * self.batch_size]
+
+    #         processed_x = self.preprocessing(batch_x)
+    #         processed_y = np.ravel(self.preprocessing(batch_y, classifier=self.classifier), order='C') 
+
+    #         return processed_x, processed_y
+
+    #     def preprocessing(self, data, classifier=False):
+    #         processed_data = []
+    #         for item in data:
+    #             flattened_item = item.flatten()
+    #             if classifier:
+    #                 flattened_item = flattened_item.astype(int)
+    #             processed_data.append(flattened_item)
+    #         return np.array(processed_data)
+
+    def fit(self, X_train, y_train, batchsz, time_as_int=False, **kwargs):
         start = time.time()
         # if self.is_classifier:
         #     y_train = np.ravel(vectorized(y_train, True), order='C') 
         # else:
         #     y_train = np.ravel(vectorized(y_train, False), order='C')
-        y_train = np.ravel(self.preprocessing(y_train, self.is_classifier), order='C') 
+
+        temp_file = 'temp.npy'
+        y_train = self.preprocessing(y_train, self.is_classifier)
+        np.save(temp_file, y_train)
+        y_train = np.load(temp_file, mmap_mode='r+')
+        y_train = np.ravel(y_train, order='C') 
         x_train = self.preprocessing(X_train)
+        
+
         # vectorized = np.vectorize(self.preprocessing)
         # y_train = np.ravel(vectorized(y_train, self.is_classifier), order='C')
         # x_train = vectorized(X_train)
         self.model.fit(X=x_train, 
                        y=y_train)
-        self.time_used = convert_seconds(time.time() - start)
+        self.time_used = time.time() - start
+        if not time_as_int:
+            self.time_used = convert_seconds(self.time_used)
+        
     
     def save(self, file_name:str, extension:str='.pkl'):
         file_path = Path(self.path_weight, f'{file_name}{extension}')
@@ -175,7 +215,8 @@ class MachineLearningModel(BaseModel):
     def predict(self, X, save=True, scaler=None):
         yhat = self.model.predict(self.preprocessing(x=X))
         if scaler is not None: 
-            yhat = yhat * (scaler['max'] - scaler['min']) +  scaler['min']
+            # yhat = yhat * (scaler['max'] - scaler['min']) +  scaler['min']
+            yhat = yhat * scaler[0]['std'] - scaler[0]['mean']
             # print(yhat.shape)
             # yhat = yhat * (scaler[0]['max'] - scaler[0]['min']) +  scaler[0]['min']
             
@@ -203,7 +244,7 @@ class DataGenerator(Sequence):
         return batch_x, batch_y
 
 class TensorflowModel(BaseModel):
-    def __init__(self, modelConfigs, input_shape, output_shape, save_dir, normalize_layer=None, seed=941, **kwargs):
+    def __init__(self, modelConfigs, input_shape, output_shape, save_dir, seed=941, **kwargs):
         super().__init__(modelConfigs=modelConfigs, save_dir=save_dir)
         self.function_dict = {
             'MSE'       : MeanSquaredError,
@@ -222,7 +263,6 @@ class TensorflowModel(BaseModel):
         self.activations     = [ele if ele != 'None' else None for ele in self.modelConfigs['activations']]
         self.dropouts        = self.modelConfigs['dropouts']
         self.seed            = seed
-        self.normalize_layer = normalize_layer
         self.input_shape     = input_shape
         self.output_shape    = output_shape
         
@@ -294,7 +334,7 @@ class TensorflowModel(BaseModel):
             print(e)
             self.model = None
 
-    def fit(self, X_train, y_train, X_val, y_val, patience, learning_rate, epochs, batchsz, optimizer='Adam', loss='MSE', **kwargs):
+    def fit(self, X_train, y_train, X_val, y_val, patience, learning_rate, epochs, batchsz, optimizer='Adam', loss='MSE', time_as_int=False, **kwargs):
         start = time.time()
         self.model.compile(optimizer=self.function_dict[optimizer](learning_rate=learning_rate), loss=self.function_dict[loss]())
         # self.history = self.model.fit(self.preprocessing(x=X_train, y=y_train, batchsz=batchsz), 
@@ -305,7 +345,9 @@ class TensorflowModel(BaseModel):
                                       validation_data=DataGenerator(x=X_val, y=y_val, batchsz=batchsz),
                                       epochs=epochs, 
                                       callbacks=self.callbacks(patience=patience, min_delta=0.001))
-        self.time_used = convert_seconds(time.time() - start)
+        self.time_used = time.time() - start
+        if not time_as_int:
+            self.time_used = convert_seconds(self.time_used)
         loss = self.history.history.get('loss')
         val_loss = self.history.history.get('val_loss')
         if all([len(loss)>1, len(val_loss)>1]):
@@ -322,7 +364,8 @@ class TensorflowModel(BaseModel):
     def predict(self, X, save=True, scaler=None):
         yhat = self.model.predict(X, verbose=0)
         if scaler is not None: 
-            yhat = (yhat - scaler['min']) / (scaler['max'] - scaler['min'])
+            # yhat = (yhat - scaler['min']) / (scaler['max'] - scaler['min'])
+            yhat = yhat * scaler[0]['std'] - scaler[0]['mean']
         if save:
             filename = self.path_value / f'yhat-{self.__class__.__name__}.npy'
             np.save(file=filename, 
@@ -354,7 +397,6 @@ class LTSF_Linear_Base(TensorflowModel):
                          input_shape=input_shape, 
                          output_shape=output_shape,
                          save_dir=save_dir,
-                         normalize_layer=None,
                          seed=seed)
         self.individual = self.modelConfigs['individual']
         self.enc_in = enc_in

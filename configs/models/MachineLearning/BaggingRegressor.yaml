@@ -1,0 +1,6 @@
+# https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.BaggingRegressor.html
+
+n_estimators: 10
+# description:
+# default: 10
+# options:
