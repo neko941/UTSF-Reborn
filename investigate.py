@@ -118,11 +118,21 @@ def report_updated(path):
 		df = df.with_columns(pl.lit(opt['resample']).alias('resample'))
 		df = df.with_columns(pl.lit(i.split(os.sep)[-2]).alias('Case'))
 		opt = yaml_load([f for f in glob.glob(f"{i}\\configs\\*.yaml") if 'traffic' in f][0])
-		
+
+		# df = df.with_columns(pl.lit('Time').cast(pl.Utf8))
+		# print(df)
+
+		n = len(np.load(os.path.join(i, r'values\invalid.npy')))
+		df = df.with_columns(pl.lit(n).alias('invalid'))
+
+		options = ['150_random_ids', 'all_ids']
+		df = df.with_columns(pl.when(pl.col("Case").str.contains(options[1])).then(options[1]).otherwise(options[0]).alias('ids'))
+
 		used_features = [opt['target'], *opt['features']]
 		for f in ['kml_segment_id', 'avg_speed', 'min_speed', 'max_speed', 'std_speed', 'rain']:
 			df = df.with_columns(pl.lit(f in used_features).alias(f))
 		data = pl.concat([data, df])
+	print(data)
 	data = data.sort(['R2'], descending=True)
 	data.write_csv('all.csv')
 

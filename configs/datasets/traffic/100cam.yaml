@@ -1,15 +1,22 @@
-data: .\data\raw\traffic\a_year-min_max_std-has_rain.csv
+data: .\data\raw\traffic\100cam_Mocktest.csv
 target: avg_speed
 date: date
 features: 
   - kml_segment_id
-  - max_speed
-  - min_speed
+  - Speed (km/h)
   - std_speed
-  # - rain
+  - min_speed
+  - max_speed
+  - Vehicle_count_average
+  - Vehicle count - Class 1
+  - Vehicle count - Class 2
+  - Vehicle count - Class 3
+  - Vehicle count - Class 4
+  - Vehicle count - Class 5
+  - Lanes
 time_id: time_id
 start_time_id: 240
-delimiter: "|"
+delimiter: ","
 split_feature: kml_segment_id
 dir_as_feature: 0
 split_dir_feature: 0

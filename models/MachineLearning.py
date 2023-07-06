@@ -138,17 +138,17 @@ class ExtremeGradientBoostingRegression(MachineLearningModel):
     def build(self):
         self.model = XGBRegressor(**self.modelConfigs)
 
-    def preprocessing(self, x, classifier=False):
-    #     # os.remove(temp_file)
-        if classifier: res = [i.flatten().astype(int) for i in x]
-        else: 
+    # def preprocessing(self, x, classifier=False):
+    # #     # os.remove(temp_file)
+    #     if classifier: res = [i.flatten().astype(int) for i in x]
+        # else: 
     #         # flatten_func = np.vectorize(lambda arr: arr.flatten())
     #         # res = flatten_func(x)
 
-            temp_file = self.path_value / 'temp_flatten.npy'
-            writer = NpyFileAppend(temp_file) 
-            for i in track(x):
-                writer.append(i.flatten())
+            # temp_file = self.path_value / 'temp_flatten.npy'
+            # writer = NpyFileAppend(temp_file) 
+            # for i in track(x):
+            #     writer.append(i.flatten())
             # num_processes = 8
             # def flatten_element(element, writer):
             #     return writera.append(element.flatten())
@@ -156,8 +156,8 @@ class ExtremeGradientBoostingRegression(MachineLearningModel):
             # chunks = [x[i:i+chunk_size] for i in range(0, len(x), chunk_size)]
             # with Pool(processes=num_processes) as pool:
             #     pool.map(flatten_element, (chunks, writer))
-            writer.close()
-            res = np.load(temp_file, mmap_mode='r+')
+            # writer.close()
+            # res = np.load(temp_file, mmap_mode='r+')
 
 
     #         # temp_file = self.path_value / 'temp_flatten.npy'
@@ -167,7 +167,7 @@ class ExtremeGradientBoostingRegression(MachineLearningModel):
     #         # writer.close()
     #         # res = np.load(temp_file, mmap_mode='r+')
     #     else: res = [i.flatten() for i in x]
-        return res
+        # return res
 
     def fit(self, X_train, y_train, time_as_int=False, **kwargs):
         start = time.time()

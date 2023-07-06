@@ -31,6 +31,9 @@ from rich.progress import TimeRemainingColumn
 # from sklearn.preprocessing import MinMaxScaler
 
 class DatasetController():
+    """ 
+    Most data processing procedure will be managed here
+    """
     def __init__(self, 
                  configsPath=None, 
                  resample=5, 
@@ -128,7 +131,7 @@ class DatasetController():
             self.df = self.df.drop_nulls()
             self.df = self.df.unique()
             # print(self.df.filter(pl.col('speed') > 70))
-            # exit()
+            # print(self.df); exit()
 
             # =============================================================================
             # self.segmentFeature = 'kml_segment_id'

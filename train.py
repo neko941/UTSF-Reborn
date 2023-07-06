@@ -47,7 +47,8 @@ from rich.progress import TimeElapsedColumn
 from rich.progress import MofNCompleteColumn
 from rich.progress import TimeRemainingColumn
 
-def main(opt):
+import argparse
+def main(opt:argparse.Namespace):
     """ Get the save directory for this run """
     save_dir = str(increment_path(Path(opt.project) / opt.name, overwrite=opt.overwrite, mkdir=True))
     # save_dir = str(Path(opt.project) / 'crossvalidation-data_avg_min_max_std_rain-all_ids-use_avg_min_max_std_rain-fill_ffill' / f'r{opt.resample}l{opt.lag}')
@@ -141,6 +142,7 @@ def main(opt):
             console.save_svg(os.path.join(save_dir, 'results.svg'), theme=MONOKAI)  
             table_to_df(table).write_csv(os.path.join(save_dir, 'results.csv'))
     else:
+        # merge all into a dataset to split again
         x = np.concatenate([X_train, X_val, X_test], axis=0)
         x = np.array_split(x, 100, axis=0)
         y = np.concatenate([y_train, y_val, y_test], axis=0)
@@ -233,10 +235,15 @@ def train(model, modelConfigs, data, save_dir, ahead,
           enc_in: int = 1,
           scaler = None,
           time_as_int:bool = False) -> list:
+    """ 
+    Procedure to train a model
+    """
+    
     # import tensorflow as tf
     # model = tf.keras.models.load_model('VanillaLSTM__Tensorflow')
     # model.summary()
 
+    # init model params
     model = model(input_shape=data[0][0].shape[-2:],
                   modelConfigs=modelConfigs, 
                   output_shape=ahead, 
@@ -244,9 +251,14 @@ def train(model, modelConfigs, data, save_dir, ahead,
                   normalize_layer=None,
                   save_dir=save_dir,
                   enc_in=enc_in)
+    
+    # build model with given params
     model.build()
     # model.model.built = True
     # model.load('LTSF_Linear__Tensorflow_bestckpt.index')
+    # init model parameters
+    
+    # preprocess data then compile and train model 
     model.fit(patience=patience, 
               optimizer=optimizer, 
               loss=loss, 
@@ -256,9 +268,9 @@ def train(model, modelConfigs, data, save_dir, ahead,
               X_train=data[0][0], y_train=data[0][1],
               X_val=data[1][0], y_val=data[1][1],
               time_as_int=time_as_int)
-    model.save(file_name=f'{model.__class__.__name__}')
-    
+    # model.save(file_name=f'{model.__class__.__name__}')
 
+    # try to get model weights, best is preferred
     weight=os.path.join(save_dir, 'weights', f"{model.__class__.__name__}_best.h5")
     if not os.path.exists(weight): weight = model.save(file_name=model.__class__.__name__)
     else: model.save(save_dir=save_dir, file_name=model.__class__.__name__)
@@ -295,6 +307,9 @@ def train(model, modelConfigs, data, save_dir, ahead,
 
 def run(**kwargs):
     """ 
+    Function for Python code to import and execute the whole process
+    See more arguments for this function at utils.option.parse_opt()
+
     Usage (example)
         import train
         train.run(all=True, 

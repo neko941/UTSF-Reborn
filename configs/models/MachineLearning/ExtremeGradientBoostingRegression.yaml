@@ -76,8 +76,8 @@ alpha: 0
 
 tree_method: gpu_hist
 # description: the tree construction algorithm used in XGBoost
-# default: auto, gpu_hist
-# options:
+# default: auto
+# options: auto, exact, approx, hist, gpu_hist
 
 scale_pos_weight: 1
 # description: control the balance of positive and negative weights, useful for unbalanced classes
@@ -114,7 +114,7 @@ max_bin: 256
 # default: 256
 # options:
 
-predictor: auto
+predictor: gpu_predictor
 # description: the type of predictor algorithm to use.
 # default: 'auto'
 # options: 'auto', 'cpu_predictor', 'gpu_predictor'
