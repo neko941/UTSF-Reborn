@@ -83,7 +83,6 @@ def main(opt:argparse.Namespace):
     opt.LTSF_Embedded_NLinear__Tensorflow = False
     opt.LTSF_Embedded_DLinear__Tensorflow = False
     # CrossValidation = True
-    CrossValidation = False
 
     """ Save updated options """
     yaml_save(path_configs / 'updated_opt.yaml', vars(opt))
@@ -114,29 +113,27 @@ def main(opt:argparse.Namespace):
     table = Table(title="[cyan]Results", show_header=True, header_style="bold magenta", box=rbox.ROUNDED, show_lines=True)
     [table.add_column(f'[green]{name}', justify='center') for name in ['Name', 'Time', *list(metric_dict.keys())]]
 
-    
-
-    if not CrossValidation:
+    if not opt.crossValidation:
         for item in model_dict:
             if not vars(opt)[f'{item["model"].__name__}']: continue
             shutil.copyfile(item['config'], path_configs/os.path.basename(item['config']))
             datum = train(model=item['model'], 
-                        modelConfigs=item['config'], 
-                        data=[[X_train, y_train], [X_val, y_val], [X_test, y_test]], 
-                        save_dir=save_dir,
-                        ahead=opt.ahead, 
-                        seed=opt.seed, 
-                        normalize_layer=None,
-                        learning_rate=opt.lr,
-                        epochs=opt.epochs, 
-                        patience=opt.patience,
-                        optimizer=opt.optimizer, 
-                        loss=opt.loss,
-                        batchsz=opt.batchsz,
-                        r=opt.round,
-                        enc_in=1,
-                        scaler=scaler,
-                        time_as_int=False)
+                          modelConfigs=item['config'], 
+                          data=[[X_train, y_train], [X_val, y_val], [X_test, y_test]], 
+                          save_dir=save_dir,
+                          ahead=opt.ahead, 
+                          seed=opt.seed, 
+                          normalize_layer=None,
+                          learning_rate=opt.lr,
+                          epochs=opt.epochs, 
+                          patience=opt.patience,
+                          optimizer=opt.optimizer, 
+                          loss=opt.loss,
+                          batchsz=opt.batchsz,
+                          r=opt.round,
+                          enc_in=1,
+                          scaler=scaler,
+                          time_as_int=False)
             table.add_row(*datum)
             console.print(table)
             console.save_svg(os.path.join(save_dir, 'results.svg'), theme=MONOKAI)  

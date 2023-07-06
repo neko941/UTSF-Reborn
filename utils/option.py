@@ -463,6 +463,7 @@ def parse_opt(ROOT, known=False):
     # parser.add_argument('--startTimeId', type=int, default=0, help='by minutes')
 
     parser.add_argument('--dataConfigs', default='data.yaml', help='dataset')
+    parser.add_argument('--crossValidation', action='store_true', help='')
     parser.add_argument('--patience', type=int, default=1000, help='EarlyStopping patience (epochs without improvement)')
     parser.add_argument('--project', default=ROOT / 'runs', help='save to project/name')
     parser.add_argument('--name', default='exp', help='save to project/name')
